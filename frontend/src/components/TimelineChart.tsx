@@ -38,6 +38,8 @@ interface TimelineChartProps {
   profile: Profile;
   events: LifeEvent[];
   compare: Compare;
+  /** Name for the dashed line. The advisor brief says "With their changes". */
+  scenarioLabel?: string;
 }
 
 interface Point {
@@ -147,7 +149,7 @@ function labelsThatFit(markers: MarkerSpec[], pxPerYear: number, endAge: number)
   return fits;
 }
 
-export function TimelineChart({ profile, events, compare }: TimelineChartProps) {
+export function TimelineChart({ profile, events, compare, scenarioLabel = "With your changes" }: TimelineChartProps) {
   const [metric, setMetric] = useState<Metric>("net_worth");
   const [hover, setHover] = useState<MarkerHover | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
@@ -186,7 +188,7 @@ export function TimelineChart({ profile, events, compare }: TimelineChartProps) 
           </div>
           {hasScenario && (
             <div>
-              <dt className="text-muted">With your changes</dt>
+              <dt className="text-muted">{scenarioLabel}</dt>
               <dd className="text-lg font-semibold">
                 {money(scenario.summary.net_worth_at_retire)}{" "}
                 <span className={`text-sm ${diff.net_worth_at_retire < 0 ? "text-alert" : "text-good"}`}>
@@ -221,7 +223,7 @@ export function TimelineChart({ profile, events, compare }: TimelineChartProps) 
             <YAxis tickFormatter={money} width={yAxisWidth} tickLine={false} axisLine={false} stroke="var(--muted)" />
             <Tooltip
               active={hover ? false : undefined}
-              formatter={(value, name) => [money(Number(value)), name === "baseline" ? "Today's path" : "With your changes"]}
+              formatter={(value, name) => [money(Number(value)), name === "baseline" ? "Today's path" : scenarioLabel]}
               labelFormatter={(age) => `Age ${age}`}
             />
             {spans.map(([from, to]) => (

@@ -73,7 +73,7 @@ function BriefContent({ brief }: { brief: Brief }) {
       </header>
 
       <div className="break-inside-avoid">
-        <TimelineChart profile={brief.profile} events={events} compare={brief.compare} />
+        <TimelineChart profile={brief.profile} events={events} compare={brief.compare} scenarioLabel="With their changes" />
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 print:grid-cols-2 print:gap-4">
