@@ -1,21 +1,21 @@
-import { Baby, BriefcaseBusiness, Car, CreditCard, House, PiggyBank, type LucideIcon } from "lucide-react";
+import type { PictogramName } from "@/components/Pictogram";
 import { money, pct } from "./format";
 import type { LifeEvent } from "./types";
 
-// Icon mapping from the game plan, section 6. job_loss also gets a red slash (see EventIcon).
+// Icon mapping from the game plan, section 6, drawn as solid pictograms. job_loss also gets a red slash (see EventIcon).
 
-export function eventIcon(event: LifeEvent): LucideIcon {
+export function eventPictogram(event: LifeEvent): PictogramName {
   switch (event.type) {
     case "buy_house":
-      return House;
+      return "house";
     case "have_child":
-      return Baby;
+      return "baby";
     case "job_loss":
-      return BriefcaseBusiness;
+      return "briefcase";
     case "set_retirement_pct":
-      return PiggyBank;
+      return "piggy";
     case "new_debt":
-      return /\bcar\b/i.test(event.name) ? Car : CreditCard;
+      return /\bcar\b/i.test(event.name) ? "car" : "card";
   }
 }
 

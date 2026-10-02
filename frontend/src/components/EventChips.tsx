@@ -25,7 +25,7 @@ export function EventChips({ events, onRemove }: EventChipsProps) {
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
             className="flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 py-1 pl-2 pr-1 text-sm"
           >
-            <EventIcon event={event} size={16} className="shrink-0 text-accent" />
+            <EventIcon event={event} size={18} className="shrink-0 text-ink" />
             <span>{eventLabel(event)}</span>
             {onRemove && (
               <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { TreePalm, User } from "lucide-react";
+import { Pictogram } from "@/components/Pictogram";
 import {
   CartesianGrid,
   Line,
@@ -15,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { EventIcon } from "@/components/EventIcon";
-import { EventMarker, type MarkerHover, type MarkerTone } from "@/components/EventMarker";
+import { EventMarker, MARKER_PX, MARKER_STEM, type MarkerHover, type MarkerTone } from "@/components/EventMarker";
 import { eventShortLabel, eventTooltip } from "@/lib/eventMeta";
 import { money } from "@/lib/format";
 import { useIsPhone } from "@/lib/useIsPhone";
@@ -30,9 +30,10 @@ const METRICS: { value: Metric; label: string }[] = [
 
 /** How long each line takes to draw. Event badges are timed against it. */
 const LINE_MS = 1500;
-/** Desktop badge diameter and a rough 11px label character width, for label collision checks. */
-const BADGE_PX = 22;
-const LABEL_CHAR_PX = 6.5;
+/** Rough width of one character of a 12px bold label, for label collision checks (labels show on desktop only). */
+const LABEL_CHAR_PX = 7.2;
+/** Half the width of a typical hover tooltip, used to keep it inside the chart. */
+const TOOLTIP_HALF_PX = 80;
 
 interface TimelineChartProps {
   profile: Profile;
@@ -93,7 +94,7 @@ function buildMarkers(profile: Profile, events: LifeEvent[], baseline: Map<numbe
       tone: "profile",
       label: `You, ${profile.age}`,
       tooltip: `You today, age ${profile.age}`,
-      icon: (size) => <User size={size} aria-hidden="true" focusable="false" />,
+      icon: (size) => <Pictogram name="user" size={size} />,
       stackIndex: nextIndex(profile.age),
     });
   }
@@ -122,7 +123,7 @@ function buildMarkers(profile: Profile, events: LifeEvent[], baseline: Map<numbe
       tone: "profile",
       label: `Retire, ${profile.retire_age}`,
       tooltip: `Retire at ${profile.retire_age}`,
-      icon: (size) => <TreePalm size={size} aria-hidden="true" focusable="false" />,
+      icon: (size) => <Pictogram name="palm" size={size} />,
       stackIndex: nextIndex(profile.retire_age),
     });
   }
@@ -137,7 +138,7 @@ function labelsThatFit(markers: MarkerSpec[], pxPerYear: number, endAge: number)
   const fits = new Set<string>();
   if (pxPerYear <= 0) return fits;
   for (const marker of markers) {
-    const needYears = (BADGE_PX + 8 + marker.label.length * LABEL_CHAR_PX) / pxPerYear;
+    const needYears = (MARKER_PX.desktop + 8 + marker.label.length * LABEL_CHAR_PX) / pxPerYear;
     const direction = marker.age === endAge ? -1 : 1;
     const blocked = markers.some((other) => {
       if (other === marker || other.stackIndex !== marker.stackIndex) return false;
@@ -154,7 +155,10 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
   const [hover, setHover] = useState<MarkerHover | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
   const compact = useIsPhone();
-  const margin = { top: 56, right: compact ? 12 : 48, bottom: 4, left: 0 };
+  // Room above the plot for one pictogram plus its stem, and half a pictogram at each side so the
+  // first and last markers clear the axis labels. Taller same-age stacks may rise into the header gap.
+  const markerPx = compact ? MARKER_PX.phone : MARKER_PX.desktop;
+  const margin = { top: MARKER_STEM + markerPx + 12, right: compact ? markerPx / 2 + 4 : 48, bottom: 4, left: markerPx / 2 - 4 };
   const yAxisWidth = compact ? 48 : 60;
 
   const { baseline, scenario, diff } = compare;
@@ -215,7 +219,7 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
         </div>
       </div>
 
-      <div className="relative mt-4 h-72 sm:h-96">
+      <div className="relative mt-4 h-80 sm:h-[26rem]">
         <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
           <LineChart data={data} margin={margin}>
             <CartesianGrid stroke="var(--line)" vertical={false} />
@@ -275,7 +279,8 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
           <div
             role="tooltip"
             className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-medium text-white shadow-soft"
-            style={{ left: hover.x, top: hover.y - 6 }}
+            // Keep the centered tooltip inside the chart so it never spills off a phone screen.
+            style={{ left: Math.min(Math.max(hover.x, TOOLTIP_HALF_PX), Math.max(chartWidth - TOOLTIP_HALF_PX, TOOLTIP_HALF_PX)), top: hover.y - 6 }}
           >
             {hover.text}
           </div>

@@ -11,41 +11,57 @@ export interface MarkerHover {
   text: string;
 }
 
+/** Pictogram size in pixels. About 2.5-2.75x the old 13px/11px badge icons. */
+export const MARKER_PX = { desktop: 36, phone: 26 } as const;
+/** Gap between the line and the bottom of the lowest pictogram. */
+export const MARKER_STEM = 8;
+/** Space between stacked pictograms at the same age. */
+export const MARKER_STACK_GAP = 6;
+
 export interface EventMarkerProps {
   /** Point on the line, in chart pixels. Recharts' ReferenceDot fills these in. */
   cx?: number;
   cy?: number;
   icon: (size: number) => ReactNode;
-  /** "event" = orange ring on the scenario line; "profile" = deep blue ring on the baseline. */
+  /** Stem and dot color: "event" = orange on the scenario line; "profile" = deep blue on the baseline. */
   tone: MarkerTone;
   label: string;
   tooltip: string;
   /** Position in a same-age stack: 0 sits closest to the line. */
   stackIndex: number;
-  /** Seconds to wait so the badge lands as the line draws through this age. */
+  /** Seconds to wait so the pictogram lands as the line draws through this age. */
   delay: number;
   compact: boolean;
-  /** False on phones and when the label would run into a neighboring badge. The tooltip still has it. */
+  /** False on phones and when the label would run into a neighboring pictogram. The tooltip still has it. */
   showLabel: boolean;
-  /** Put the label left of the badge, for markers at the chart's right edge. */
+  /** Put the label left of the pictogram, for markers at the chart's right edge. */
   labelLeft?: boolean;
   onHover: (hover: MarkerHover | null) => void;
 }
 
-const LIFT = 22;
-const STACK_GAP = 26;
-
-/** Round life-event badge for the timeline: white circle, colored ring, lucide icon inside. */
-export function EventMarker({ cx, cy, icon, tone, label, tooltip, stackIndex, delay, compact, showLabel, labelLeft = false, onHover }: EventMarkerProps) {
+/** Solid life-event pictogram standing above its point on the timeline. */
+export function EventMarker({
+  cx,
+  cy,
+  icon,
+  tone,
+  label,
+  tooltip,
+  stackIndex,
+  delay,
+  compact,
+  showLabel,
+  labelLeft = false,
+  onHover,
+}: EventMarkerProps) {
   const reduceMotion = useReducedMotion();
   if (cx === undefined || cy === undefined || !Number.isFinite(cx) || !Number.isFinite(cy)) return null;
 
-  const diameter = compact ? 18 : 22;
-  const radius = diameter / 2;
-  const iconSize = compact ? 11 : 13;
-  const ring = tone === "event" ? "var(--accent)" : "var(--primary)";
-  const badgeY = cy - LIFT - stackIndex * STACK_GAP;
-  const show = () => onHover({ x: cx, y: badgeY - radius, text: tooltip });
+  const size = compact ? MARKER_PX.phone : MARKER_PX.desktop;
+  const half = size / 2;
+  const color = tone === "event" ? "var(--accent)" : "var(--primary)";
+  const centerY = cy - MARKER_STEM - half - stackIndex * (size + MARKER_STACK_GAP);
+  const show = () => onHover({ x: cx, y: centerY - half, text: tooltip });
   const hide = () => onHover(null);
   const fade = reduceMotion ? { duration: 0 } : { duration: 0.25, delay };
 
@@ -64,8 +80,8 @@ export function EventMarker({ cx, cy, icon, tone, label, tooltip, stackIndex, de
       <title>{tooltip}</title>
       {stackIndex === 0 && (
         <motion.g initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={fade}>
-          <line x1={cx} y1={cy} x2={cx} y2={badgeY + radius} stroke={ring} strokeWidth={1.5} strokeOpacity={0.5} />
-          <circle cx={cx} cy={cy} r={3} fill={ring} />
+          <line x1={cx} y1={cy} x2={cx} y2={cy - MARKER_STEM} stroke={color} strokeWidth={2} />
+          <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="var(--surface)" strokeWidth={1.5} />
         </motion.g>
       )}
       <motion.g
@@ -74,20 +90,29 @@ export function EventMarker({ cx, cy, icon, tone, label, tooltip, stackIndex, de
         transition={{ type: "spring", stiffness: 420, damping: 18, delay }}
         style={{ transformBox: "fill-box", transformOrigin: "center" }}
       >
-        <circle cx={cx} cy={badgeY} r={radius} fill="var(--surface)" stroke={ring} strokeWidth={2} />
-        <g transform={`translate(${cx - iconSize / 2} ${badgeY - iconSize / 2})`} color={ring}>
-          {icon(iconSize)}
+        {/* Transparent box so the whole square is hoverable, not just the filled shapes. */}
+        <rect x={cx - half} y={centerY - half} width={size} height={size} fill="transparent" />
+        {/* The surface-colored stroke, painted under each fill, gives the pictogram a halo over grid lines. */}
+        <g
+          transform={`translate(${cx - half} ${centerY - half})`}
+          color="var(--ink)"
+          stroke="var(--surface)"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+        >
+          {icon(size)}
         </g>
       </motion.g>
       {showLabel && (
         <motion.text
-          x={labelLeft ? cx - radius - 4 : cx + radius + 4}
-          y={badgeY + 4}
+          x={labelLeft ? cx - half - 4 : cx + half + 4}
+          y={centerY + 4}
           textAnchor={labelLeft ? "end" : "start"}
-          fontSize={11}
-          fontWeight={600}
+          fontSize={12}
+          fontWeight={700}
           fill="var(--ink)"
-          stroke="var(--canvas)"
+          stroke="var(--surface)"
           strokeWidth={3}
           paintOrder="stroke"
           initial={reduceMotion ? false : { opacity: 0 }}

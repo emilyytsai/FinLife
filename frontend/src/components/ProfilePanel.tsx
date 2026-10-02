@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, User } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
+import { Pictogram } from "@/components/Pictogram";
 import type { Assumptions, Debt, DemoProfile, FieldError, Profile } from "@/lib/types";
 
 type Kind = "money" | "percent" | "age";
@@ -120,8 +121,8 @@ export function ProfilePanel({ profiles, personaId, profile, fieldErrors, onPers
   return (
     <section className="rounded-card bg-surface p-4 shadow-soft" aria-labelledby="profile-heading">
       <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-full border-2 border-primary text-primary">
-          <User size={16} aria-hidden="true" />
+        <span className="flex size-8 shrink-0 items-center justify-center text-ink">
+          <Pictogram name="user" size={28} />
         </span>
         <div className="min-w-0">
           <h2 id="profile-heading" className="font-semibold">

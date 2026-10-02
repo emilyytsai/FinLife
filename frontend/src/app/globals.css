@@ -60,3 +60,8 @@ body {
     break-inside: avoid;
   }
 }
+
+/* Let tall stacks of timeline pictograms draw above the plot instead of being clipped. */
+.recharts-surface {
+  overflow: visible;
+}
