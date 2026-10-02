@@ -27,8 +27,11 @@ Financial life simulator for the LPL "Startup from the Future" hackathon. Users 
 - contracts/schema.md, CLAUDE.md: whole team; change only with agreement
 
 ## Working rules
+- TODO.md holds the requirements and task list. Read it before starting a task; when your task's "Done when" checks pass, tick it in the same commit. Edit only your own section.
 - Only edit files in the folder you were asked to work in.
 - Run tests before saying a task is done: pytest in backend/; npm run lint and npm run build in frontend/.
 - Commands must work in Windows PowerShell and macOS.
 - Keep files UTF-8 without BOM.
 - Prefer small, readable functions. Handle errors with friendly messages, never stack traces in the UI.
+
+@TODO.md
