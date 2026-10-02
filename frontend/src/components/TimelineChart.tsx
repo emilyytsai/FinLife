@@ -197,7 +197,7 @@ export function TimelineChart({ profile, events, compare }: TimelineChartProps) 
             </div>
           )}
         </dl>
-        <div role="radiogroup" aria-label="Chart metric" className="flex rounded-full border border-line p-0.5 text-sm">
+        <div role="radiogroup" aria-label="Chart metric" className="flex rounded-full print:hidden border border-line p-0.5 text-sm">
           {METRICS.map((option) => (
             <button
               key={option.value}
