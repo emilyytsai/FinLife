@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* FinLife design tokens (our own brand, not LPL's). */
+:root {
+  --ink: #0f172a;
+  --muted: #64748b;
+  --surface: #ffffff;
+  --canvas: #f6f7fb;
+  --line: #e2e8f0;
+  --primary: #2446a8;
+  --accent: #f28c28;
+  --good: #1f9d6b;
+  --watch: #d99a00;
+  --alert: #d64545;
+  --card-radius: 12px;
+  --soft-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px rgb(15 23 42 / 0.06);
+}
+
+/* Exposed to Tailwind as text-ink, bg-primary, border-line, rounded-card, shadow-soft, font-sans, ... */
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-good: var(--good);
+  --color-watch: var(--watch);
+  --color-alert: var(--alert);
+  --radius-card: var(--card-radius);
+  --shadow-soft: var(--soft-shadow);
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+}

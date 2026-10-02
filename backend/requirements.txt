@@ -1,0 +1,6 @@
+fastapi==0.142.2
+pydantic==2.13.5
+pydantic-settings==2.15.0
+mangum==0.22.0
+boto3==1.43.107
+anthropic[bedrock]==1.11.0

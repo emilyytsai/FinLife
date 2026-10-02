@@ -1,0 +1,81 @@
+[
+  {
+    "id": "maya",
+    "name": "Maya",
+    "blurb": "22, marketing coordinator, renting, student loan",
+    "profile": {
+      "age": 22,
+      "retire_age": 60,
+      "income": 55000,
+      "salary_growth": 0.03,
+      "cash": 12000,
+      "monthly_expenses": 1500,
+      "monthly_rent": 1300,
+      "retirement_balance": 0,
+      "retirement_pct": 0.05,
+      "employer_match_pct": 0.03,
+      "debts": [
+        {"name": "student loan", "balance": 25000, "rate": 0.055, "min_payment": 280}
+      ],
+      "assumptions": {
+        "investment_return": 0.06,
+        "inflation": 0.03,
+        "cash_yield": 0.02,
+        "tax_rate": 0.22,
+        "home_cost_pct": 0.015
+      }
+    }
+  },
+  {
+    "id": "jordan",
+    "name": "Jordan",
+    "blurb": "29, nurse, renting, car loan",
+    "profile": {
+      "age": 29,
+      "retire_age": 62,
+      "income": 78000,
+      "salary_growth": 0.03,
+      "cash": 15000,
+      "monthly_expenses": 2000,
+      "monthly_rent": 1700,
+      "retirement_balance": 32000,
+      "retirement_pct": 0.06,
+      "employer_match_pct": 0.04,
+      "debts": [
+        {"name": "car loan", "balance": 14000, "rate": 0.069, "min_payment": 420}
+      ],
+      "assumptions": {
+        "investment_return": 0.06,
+        "inflation": 0.03,
+        "cash_yield": 0.02,
+        "tax_rate": 0.22,
+        "home_cost_pct": 0.015
+      }
+    }
+  },
+  {
+    "id": "priya",
+    "name": "Priya",
+    "blurb": "34, software engineer, renting, no debt",
+    "profile": {
+      "age": 34,
+      "retire_age": 60,
+      "income": 112000,
+      "salary_growth": 0.03,
+      "cash": 40000,
+      "monthly_expenses": 3000,
+      "monthly_rent": 2400,
+      "retirement_balance": 95000,
+      "retirement_pct": 0.10,
+      "employer_match_pct": 0.05,
+      "debts": [],
+      "assumptions": {
+        "investment_return": 0.06,
+        "inflation": 0.03,
+        "cash_yield": 0.02,
+        "tax_rate": 0.22,
+        "home_cost_pct": 0.015
+      }
+    }
+  }
+]

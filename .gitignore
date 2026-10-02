@@ -1,0 +1,9 @@
+.venv/
+.env
+.env.local
+__pycache__/
+*.pyc
+node_modules/
+.aws-sam/
+.local/
+.pytest_cache/
