@@ -4,6 +4,9 @@ import { useState } from "react";
 import { RotateCw, X } from "lucide-react";
 import { AskBar } from "@/components/AskBar";
 import { InsightsPanel } from "@/components/InsightsPanel";
+import { LifeInIcons } from "@/components/LifeInIcons";
+import { ProfileBar } from "@/components/ProfileBar";
+import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { TimelineChart } from "@/components/TimelineChart";
 import { useEventImpacts } from "@/lib/useEventImpacts";
@@ -12,10 +15,12 @@ import { useFinLife } from "@/lib/useFinLife";
 export function FinLifeApp() {
   const app = useFinLife();
   const impacts = useEventImpacts(app.chartProfile, app.events);
-  // The age under the pointer on the chart or on an Insights card; both views highlight it.
+  // The age under the pointer on the chart or an Insights card. Life in Icons, the chart and the cards all follow it.
   const [focusAge, setFocusAge] = useState<number | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const ready = app.profile !== null;
   const busy = app.chatPending || !ready;
+  const hasResults = app.chartProfile !== null && app.chartCompare !== null;
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -39,24 +44,32 @@ export function FinLifeApp() {
         </div>
       )}
 
-      {/* Inputs | chart + ask bar | insights. On narrow screens: chart, ask, insights, then the profile. */}
-      <main className="grid flex-1 gap-4 p-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_340px] lg:items-start xl:grid-cols-[300px_minmax(0,1fr)_380px]">
-        <div className="order-3 lg:order-1">
+      {/* Main column | Insights. On narrow screens Insights follows the main column. */}
+      <main className="grid flex-1 gap-4 p-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="space-y-4">
           {app.profile ? (
-            <ProfilePanel
+            <ProfileBar
               profiles={app.profiles}
               personaId={app.personaId}
               profile={app.profile}
-              fieldErrors={app.fieldErrors}
+              hasErrors={app.fieldErrors.length > 0}
               onPersona={app.choosePersona}
-              onChange={app.setProfile}
+              onEdit={() => setDrawerOpen(true)}
             />
           ) : (
             <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
           )}
-        </div>
 
-        <div className="order-1 space-y-4 lg:order-2">
+          {app.chartProfile && app.chartCompare && (
+            <LifeInIcons
+              profile={app.chartProfile}
+              events={app.events}
+              compare={app.chartCompare}
+              focusAge={focusAge}
+              freshIds={app.freshIds}
+            />
+          )}
+
           <div className="relative">
             {app.chartProfile && app.chartCompare ? (
               <TimelineChart
@@ -65,16 +78,19 @@ export function FinLifeApp() {
                 compare={app.chartCompare}
                 focusAge={focusAge}
                 onFocusAge={setFocusAge}
+                showSummary={false}
+                plotHeight="h-64 sm:h-72"
               />
             ) : (
               <Placeholder text={ready ? "Running your numbers..." : "Your timeline appears here."} tall />
             )}
-            {app.chartPending && app.chartCompare && (
+            {app.chartPending && hasResults && (
               <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
                 Updating...
               </span>
             )}
           </div>
+
           <AskBar
             pending={app.chatPending}
             disabled={!ready}
@@ -85,7 +101,7 @@ export function FinLifeApp() {
           />
         </div>
 
-        <div className="order-2 lg:sticky lg:top-4 lg:order-3">
+        <div className="lg:sticky lg:top-4">
           <InsightsPanel
             profile={app.chartProfile}
             events={app.events}
@@ -103,13 +119,27 @@ export function FinLifeApp() {
       </main>
 
       <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
+
+      <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        {app.profile && (
+          <ProfilePanel
+            profiles={app.profiles}
+            personaId={app.personaId}
+            profile={app.profile}
+            fieldErrors={app.fieldErrors}
+            onPersona={app.choosePersona}
+            onChange={app.setProfile}
+            showPersona={false}
+          />
+        )}
+      </ProfileDrawer>
     </div>
   );
 }
 
 function Placeholder({ text, tall = false }: { text: string; tall?: boolean }) {
   return (
-    <div className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-40"}`}>
+    <div className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-16"}`}>
       {text}
     </div>
   );

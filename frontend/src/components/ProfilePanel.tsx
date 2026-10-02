@@ -103,9 +103,19 @@ interface ProfilePanelProps {
   fieldErrors: FieldError[];
   onPersona: (persona: DemoProfile) => void;
   onChange: (profile: Profile) => void;
+  /** False when the persona is picked elsewhere (the profile bar). */
+  showPersona?: boolean;
 }
 
-export function ProfilePanel({ profiles, personaId, profile, fieldErrors, onPersona, onChange }: ProfilePanelProps) {
+export function ProfilePanel({
+  profiles,
+  personaId,
+  profile,
+  fieldErrors,
+  onPersona,
+  onChange,
+  showPersona = true,
+}: ProfilePanelProps) {
   const persona = profiles.find((p) => p.id === personaId);
   const errorFor = (path: string) => fieldErrors.find((e) => e.field === `profile.${path}`)?.message;
   const known = (field: string) =>
@@ -132,7 +142,7 @@ export function ProfilePanel({ profiles, personaId, profile, fieldErrors, onPers
         </div>
       </div>
 
-      {profiles.length > 1 && (
+      {showPersona && profiles.length > 1 && (
         <div className="mt-4">
           <label htmlFor="persona" className="block text-xs font-medium text-muted">
             Demo persona (fictional)
