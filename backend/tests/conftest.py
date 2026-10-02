@@ -5,21 +5,18 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import get_settings
+from app.config import aws_session, get_settings
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROFILES = json.loads((BACKEND_DIR / "fixtures" / "profiles.json").read_text(encoding="utf-8"))
 
 
 def _aws_ready() -> bool:
-    """True when BEDROCK_MODEL_ID is set and AWS credentials resolve."""
-    settings = get_settings()
-    if not settings.bedrock_model_id:
+    """True when BEDROCK_MODEL_ID is set and AWS credentials resolve the same way the app finds them."""
+    if not get_settings().bedrock_model_id:
         return False
     try:
-        import boto3
-
-        return boto3.Session(profile_name=settings.aws_profile or None).get_credentials() is not None
+        return aws_session().get_credentials() is not None
     except Exception:
         return False
 
