@@ -45,6 +45,10 @@ interface TimelineChartProps {
   focusAge?: number | null;
   /** Called with the age under the pointer or a focused marker, and null when it leaves. */
   onFocusAge?: (age: number | null) => void;
+  /** Net worth at retirement above the chart. Off on the main page, where other panels show it. */
+  showSummary?: boolean;
+  /** Tailwind height classes for the plot area. */
+  plotHeight?: string;
 }
 
 interface Point {
@@ -161,6 +165,8 @@ export function TimelineChart({
   scenarioLabel = "With your changes",
   focusAge = null,
   onFocusAge,
+  showSummary = true,
+  plotHeight = "h-80 sm:h-[26rem]",
 }: TimelineChartProps) {
   const [metric, setMetric] = useState<Metric>("net_worth");
   const [hover, setHover] = useState<MarkerHover | null>(null);
@@ -204,24 +210,28 @@ export function TimelineChart({
   return (
     <section className="rounded-card bg-surface p-4 shadow-soft sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <div>
-            <dt className="text-muted">Net worth at {profile.retire_age}</dt>
-            <dd className="text-lg font-semibold">{money(baseline.summary.net_worth_at_retire)}</dd>
-          </div>
-          {hasScenario && (
+        {showSummary ? (
+          <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <div>
-              <dt className="text-muted">{scenarioLabel}</dt>
-              <dd className="text-lg font-semibold">
-                {money(scenario.summary.net_worth_at_retire)}{" "}
-                <span className={`text-sm ${diff.net_worth_at_retire < 0 ? "text-alert" : "text-good"}`}>
-                  ({diff.net_worth_at_retire >= 0 ? "+" : ""}
-                  {money(diff.net_worth_at_retire)})
-                </span>
-              </dd>
+              <dt className="text-muted">Net worth at {profile.retire_age}</dt>
+              <dd className="text-lg font-semibold">{money(baseline.summary.net_worth_at_retire)}</dd>
             </div>
-          )}
-        </dl>
+            {hasScenario && (
+              <div>
+                <dt className="text-muted">{scenarioLabel}</dt>
+                <dd className="text-lg font-semibold">
+                  {money(scenario.summary.net_worth_at_retire)}{" "}
+                  <span className={`text-sm ${diff.net_worth_at_retire < 0 ? "text-alert" : "text-good"}`}>
+                    ({diff.net_worth_at_retire >= 0 ? "+" : ""}
+                    {money(diff.net_worth_at_retire)})
+                  </span>
+                </dd>
+              </div>
+            )}
+          </dl>
+        ) : (
+          <h2 className="text-sm font-semibold text-muted">Your timeline</h2>
+        )}
         <div role="radiogroup" aria-label="Chart metric" className="flex rounded-full print:hidden border border-line p-0.5 text-sm">
           {METRICS.map((option) => (
             <button
@@ -238,7 +248,7 @@ export function TimelineChart({
         </div>
       </div>
 
-      <div className="relative mt-4 h-80 sm:h-[26rem]">
+      <div className={`relative mt-4 ${plotHeight}`}>
         <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
           <LineChart
             data={data}

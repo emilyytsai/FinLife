@@ -34,10 +34,9 @@ function rowAt(rows: YearRow[], age: number): YearRow | undefined {
   return rows.find((row) => row.age === age);
 }
 
-/** Right column: the big picture (or the hovered age), the coach's latest reply, and the life story as cards. */
+/** Right column: the big picture, the coach's latest reply, and the life story as cards that follow the chart hover. */
 export function InsightsPanel(props: InsightsPanelProps) {
   const { profile, events, compare, analysis, focusAge, shareRequest, shareDisabled } = props;
-  const showSnapshot = focusAge !== null && compare !== null && profile !== null;
   return (
     <section
       aria-labelledby="insights-heading"
@@ -46,18 +45,7 @@ export function InsightsPanel(props: InsightsPanelProps) {
       <h2 id="insights-heading" className="font-semibold">
         Insights
       </h2>
-      {/* Both views share one grid cell, so the panel keeps the taller one's height and the cards
-          below don't jump under the pointer when the view switches. */}
-      <div className="grid" aria-live="polite">
-        <div className={`[grid-area:1/1] ${showSnapshot ? "invisible" : ""}`} aria-hidden={showSnapshot}>
-          <BigPicture profile={profile} events={events} compare={compare} analysis={analysis} />
-        </div>
-        {showSnapshot && focusAge !== null && compare && (
-          <div className="[grid-area:1/1]">
-            <AgeSnapshot age={focusAge} events={events} compare={compare} />
-          </div>
-        )}
-      </div>
+      <BigPicture profile={profile} events={events} compare={compare} analysis={analysis} />
       <CoachCard messages={props.messages} pending={props.chatPending} />
       {profile && compare && (
         <StoryStack
@@ -91,49 +79,6 @@ function BigPicture({ profile, events, compare, analysis }: Pick<InsightsPanelPr
         )}
       </dl>
       {analysis && <HealthHighlights analysis={analysis} />}
-    </div>
-  );
-}
-
-function AgeSnapshot({ age, events, compare }: { age: number; events: LifeEvent[]; compare: Compare }) {
-  const hasScenario = events.length > 0;
-  const base = rowAt(compare.baseline.years, age);
-  const scen = rowAt(compare.scenario.years, age);
-  const flags = (hasScenario ? compare.scenario.flags : compare.baseline.flags).filter((flag) => flag.age === age);
-  const here = events.filter((event) => event.age === age);
-  if (!base) return null;
-  return (
-    <div className="space-y-3 rounded-xl bg-canvas p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">At age {age}</p>
-      {here.map((event) => (
-        <p key={event.id} className="flex items-center gap-2 text-sm font-semibold">
-          <EventIcon event={event} size={20} className="shrink-0 text-ink" />
-          {storyTitle(event)}
-        </p>
-      ))}
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-muted">
-            <th className="font-medium" />
-            <th className="font-medium">Today&rsquo;s path</th>
-            {hasScenario && <th className="font-medium">With changes</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {(["net_worth", "cash", "debt"] as const).map((key) => (
-            <tr key={key}>
-              <th className="py-0.5 text-left font-medium text-muted">{{ net_worth: "Net worth", cash: "Cash", debt: "Debt" }[key]}</th>
-              <td className="font-semibold">{money(base[key])}</td>
-              {hasScenario && <td className="font-semibold text-accent">{scen ? money(scen[key]) : "—"}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {flags.map((flag) => (
-        <p key={flag.code} className="rounded-lg bg-alert/10 px-2 py-1 text-xs font-medium text-alert">
-          {flag.message}
-        </p>
-      ))}
     </div>
   );
 }

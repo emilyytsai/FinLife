@@ -3,7 +3,17 @@ import type { ReactNode, SVGProps } from "react";
 // Solid, ISO-style pictograms on a 24x24 grid. Cut-outs (doors, windows, stripes) use fill-rule evenodd;
 // small details on top use the surface color. Original drawings, no brand marks.
 
-export type PictogramName = "user" | "palm" | "house" | "baby" | "briefcase" | "piggy" | "car" | "card";
+export type PictogramName =
+  | "user"
+  | "child"
+  | "palm"
+  | "house"
+  | "building"
+  | "baby"
+  | "briefcase"
+  | "piggy"
+  | "car"
+  | "card";
 
 type PictogramProps = Omit<SVGProps<SVGSVGElement>, "ref" | "name"> & { name: PictogramName; size?: number; slash?: boolean };
 
@@ -15,6 +25,20 @@ const SHAPES: Record<PictogramName, ReactNode> = {
       <circle cx="12" cy="6.5" r="4.5" />
       <path d="M3.5 22v-3a6.5 6.5 0 0 1 6.5-6.5h4a6.5 6.5 0 0 1 6.5 6.5v3z" />
     </>
+  ),
+  // Same baseline as "user", about two-thirds the height, so a family reads as one row of figures.
+  child: (
+    <>
+      <circle cx="12" cy="11.2" r="3.2" />
+      <path d="M6.6 22v-2.1a4.4 4.4 0 0 1 4.4-4.4h2a4.4 4.4 0 0 1 4.4 4.4V22z" />
+    </>
+  ),
+  // Apartment block with windows and a door, for renting.
+  building: (
+    <path
+      fillRule="evenodd"
+      d="M4 3.5A1.5 1.5 0 0 1 5.5 2h13A1.5 1.5 0 0 1 20 3.5V22H4zM7 5.5h3v2.6H7zM14 5.5h3v2.6h-3zM7 10.3h3v2.6H7zM14 10.3h3v2.6h-3zM7 15.1h3v2.6H7zM14 15.1h3v2.6h-3zM10.6 22v-3.6h2.8V22z"
+    />
   ),
   palm: (
     <>

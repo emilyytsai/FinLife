@@ -24,6 +24,7 @@ export interface ChatEntry extends Message {
 
 const ZERO_DIFF = { net_worth_at_retire: 0, retirement_at_retire: 0, min_cash: 0, min_cash_age: 0 };
 const REFRESH_DELAY_MS = 400;
+const FRESH_MS = 2500;
 
 function friendly(error: unknown): string {
   return error instanceof ApiError ? error.message : "Something went wrong. Try again.";
@@ -52,6 +53,9 @@ export function useFinLife() {
   const [chatPending, setChatPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
+  /** Ids of events the last chat turn added, for a short celebration in the UI. */
+  const [freshIds, setFreshIds] = useState<string[]>([]);
+  const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Late responses must not overwrite newer ones.
   const analyzeSeq = useRef(0);
@@ -60,6 +64,14 @@ export function useFinLife() {
   useEffect(() => {
     eventsRef.current = events;
   }, [events]);
+
+  function markFresh(added: LifeEvent[]) {
+    const ids = added.flatMap((event) => (event.id ? [event.id] : []));
+    if (ids.length === 0) return;
+    if (freshTimer.current) clearTimeout(freshTimer.current);
+    setFreshIds(ids);
+    freshTimer.current = setTimeout(() => setFreshIds([]), FRESH_MS);
+  }
 
   function choosePersona(persona: DemoProfile) {
     compareSeq.current++;
@@ -141,7 +153,9 @@ export function useFinLife() {
       const response = await chat({ session_id: sessionId, profile, events, messages: toMessages(history) });
       compareSeq.current++;
       setMessages([...history, { role: "assistant", content: response.reply, status: response.status }]);
-      setEvents(withIds(response.events));
+      const nextEvents = withIds(response.events);
+      setEvents(nextEvents);
+      markFresh(nextEvents.filter((next) => !events.some((old) => old.id === next.id)));
       setScenario(response.events.length > 0 ? response.compare : null);
       setChartProfile(profile);
       setChatSuggestions(response.suggestions);
@@ -211,6 +225,7 @@ export function useFinLife() {
     chatPending,
     error,
     fieldErrors,
+    freshIds,
     loadProfiles,
     choosePersona,
     setProfile,
