@@ -4,6 +4,8 @@ import re
 
 import pytest
 
+from app.config import aws_session, get_settings
+
 STUB_REPLY = "The coach isn't connected yet (stub). I got your question and left your plan unchanged."
 HOUSE = {"type": "buy_house", "age": 28, "price": 350000, "down_pct": 0.1, "rate": 0.065, "years": 30}
 
@@ -208,6 +210,19 @@ def test_cors_allows_frontend_and_exposes_stub_header(client):
     response = client.get("/health", headers={"Origin": "http://localhost:3000"})
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
     assert "x-finlife-stub" in response.headers["access-control-expose-headers"].lower()
+
+
+def test_stub_mode_never_needs_aws_credentials(client, maya, monkeypatch):
+    """Teammates without the finlife profile can still run the API on stubs (boto3 reads AWS_PROFILE too)."""
+    monkeypatch.setenv("AWS_PROFILE", "no-such-profile")
+    get_settings.cache_clear()
+    aws_session.cache_clear()
+    try:
+        assert client.post("/chat", json=chat_body(maya, [], "How am I doing?")).status_code == 200
+        share = {"session_id": "s1", "profile": maya, "events": [], "messages": []}
+        assert client.post("/share", json=share).status_code == 200
+    finally:
+        aws_session.cache_clear()
 
 
 def test_request_log_line_has_no_profile_values(client, maya, caplog):
