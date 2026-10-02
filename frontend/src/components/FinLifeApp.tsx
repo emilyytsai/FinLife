@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { RotateCw, X } from "lucide-react";
-import { ChatPanel } from "@/components/ChatPanel";
-import { HealthCheck } from "@/components/HealthCheck";
+import { AskBar } from "@/components/AskBar";
+import { InsightsPanel } from "@/components/InsightsPanel";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { TimelineChart } from "@/components/TimelineChart";
+import { useEventImpacts } from "@/lib/useEventImpacts";
 import { useFinLife } from "@/lib/useFinLife";
 
 export function FinLifeApp() {
   const app = useFinLife();
+  const impacts = useEventImpacts(app.chartProfile, app.events);
+  // The age under the pointer on the chart or on an Insights card; both views highlight it.
+  const [focusAge, setFocusAge] = useState<number | null>(null);
   const ready = app.profile !== null;
+  const busy = app.chatPending || !ready;
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -22,11 +28,7 @@ export function FinLifeApp() {
         <div role="alert" className="mx-4 mt-3 flex items-center gap-3 rounded-lg border border-alert/30 bg-alert/10 px-4 py-2 text-sm sm:mx-6">
           <span className="flex-1">{app.error}</span>
           {!ready && (
-            <button
-              type="button"
-              onClick={app.loadProfiles}
-              className="flex items-center gap-1 font-medium text-primary"
-            >
+            <button type="button" onClick={app.loadProfiles} className="flex items-center gap-1 font-medium text-primary">
               <RotateCw size={14} aria-hidden="true" />
               Retry
             </button>
@@ -37,7 +39,8 @@ export function FinLifeApp() {
         </div>
       )}
 
-      <main className="grid flex-1 gap-4 p-4 sm:px-6 lg:grid-cols-[300px_minmax(0,1fr)_360px] lg:items-start">
+      {/* Inputs | chart + ask bar | insights. On narrow screens: chart, ask, insights, then the profile. */}
+      <main className="grid flex-1 gap-4 p-4 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)_340px] lg:items-start xl:grid-cols-[300px_minmax(0,1fr)_380px]">
         <div className="order-3 lg:order-1">
           {app.profile ? (
             <ProfilePanel
@@ -56,7 +59,13 @@ export function FinLifeApp() {
         <div className="order-1 space-y-4 lg:order-2">
           <div className="relative">
             {app.chartProfile && app.chartCompare ? (
-              <TimelineChart profile={app.chartProfile} events={app.events} compare={app.chartCompare} />
+              <TimelineChart
+                profile={app.chartProfile}
+                events={app.events}
+                compare={app.chartCompare}
+                focusAge={focusAge}
+                onFocusAge={setFocusAge}
+              />
             ) : (
               <Placeholder text={ready ? "Running your numbers..." : "Your timeline appears here."} tall />
             )}
@@ -66,19 +75,29 @@ export function FinLifeApp() {
               </span>
             )}
           </div>
-          {app.analysis && <HealthCheck analysis={app.analysis} />}
-        </div>
-
-        <div className="order-2 lg:sticky lg:top-4 lg:order-3">
-          <ChatPanel
-            messages={app.messages}
+          <AskBar
             pending={app.chatPending}
             disabled={!ready}
             suggestions={app.suggestions}
             events={app.events}
-            shareRequest={app.shareRequest}
             onSend={app.sendMessage}
             onRemoveEvent={app.removeEvent}
+          />
+        </div>
+
+        <div className="order-2 lg:sticky lg:top-4 lg:order-3">
+          <InsightsPanel
+            profile={app.chartProfile}
+            events={app.events}
+            compare={app.chartCompare}
+            analysis={app.analysis}
+            impacts={impacts}
+            messages={app.messages}
+            chatPending={app.chatPending}
+            focusAge={focusAge}
+            onFocusAge={setFocusAge}
+            shareRequest={app.shareRequest}
+            shareDisabled={busy || app.messages.length === 0}
           />
         </div>
       </main>
@@ -90,9 +109,7 @@ export function FinLifeApp() {
 
 function Placeholder({ text, tall = false }: { text: string; tall?: boolean }) {
   return (
-    <div
-      className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-40"}`}
-    >
+    <div className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-40"}`}>
       {text}
     </div>
   );

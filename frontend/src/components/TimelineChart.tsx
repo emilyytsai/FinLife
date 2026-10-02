@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Pictogram } from "@/components/Pictogram";
 import {
   CartesianGrid,
@@ -41,6 +41,10 @@ interface TimelineChartProps {
   compare: Compare;
   /** Name for the dashed line. The advisor brief says "With their changes". */
   scenarioLabel?: string;
+  /** Age highlighted from outside the chart (e.g. an Insights card), drawn as a guide line. */
+  focusAge?: number | null;
+  /** Called with the age under the pointer or a focused marker, and null when it leaves. */
+  onFocusAge?: (age: number | null) => void;
 }
 
 interface Point {
@@ -150,10 +154,25 @@ function labelsThatFit(markers: MarkerSpec[], pxPerYear: number, endAge: number)
   return fits;
 }
 
-export function TimelineChart({ profile, events, compare, scenarioLabel = "With your changes" }: TimelineChartProps) {
+export function TimelineChart({
+  profile,
+  events,
+  compare,
+  scenarioLabel = "With your changes",
+  focusAge = null,
+  onFocusAge,
+}: TimelineChartProps) {
   const [metric, setMetric] = useState<Metric>("net_worth");
   const [hover, setHover] = useState<MarkerHover | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
+  const lastReported = useRef<number | null>(null);
+
+  /** Tells the parent which age is under the pointer, only when it changes. */
+  function reportAge(age: number | null) {
+    if (age === lastReported.current) return;
+    lastReported.current = age;
+    onFocusAge?.(age);
+  }
   const compact = useIsPhone();
   // Room above the plot for one pictogram plus its stem, and half a pictogram at each side so the
   // first and last markers clear the axis labels. Taller same-age stacks may rise into the header gap.
@@ -221,7 +240,12 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
 
       <div className="relative mt-4 h-80 sm:h-[26rem]">
         <ResponsiveContainer width="100%" height="100%" onResize={(width) => setChartWidth(width)}>
-          <LineChart data={data} margin={margin}>
+          <LineChart
+            data={data}
+            margin={margin}
+            onMouseMove={(state) => reportAge(state.activeLabel === undefined ? null : Number(state.activeLabel))}
+            onMouseLeave={() => reportAge(null)}
+          >
             <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis dataKey="age" type="number" domain={[startAge, endAge]} allowDecimals={false} tickLine={false} stroke="var(--muted)" />
             <YAxis tickFormatter={money} width={yAxisWidth} tickLine={false} axisLine={false} stroke="var(--muted)" />
@@ -237,6 +261,9 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
               events.map((event) => (
                 <ReferenceLine key={`line-${event.id ?? event.age}`} x={event.age} stroke="var(--accent)" strokeOpacity={0.35} strokeDasharray="2 4" />
               ))}
+            {focusAge !== null && focusAge >= startAge && focusAge <= endAge && (
+              <ReferenceLine x={focusAge} stroke="var(--ink)" strokeOpacity={0.35} strokeWidth={1.5} />
+            )}
             <Line dataKey="baseline" stroke="var(--primary)" strokeWidth={2.5} dot={false} animationDuration={LINE_MS} />
             {hasScenario && (
               <Line
@@ -268,7 +295,10 @@ export function TimelineChart({ profile, events, compare, scenarioLabel = "With 
                     compact={compact}
                     showLabel={labeled.has(marker.key)}
                     labelLeft={marker.age === endAge}
-                    onHover={setHover}
+                    onHover={(next) => {
+                      setHover(next);
+                      reportAge(next ? marker.age : null);
+                    }}
                   />
                 )}
               />
