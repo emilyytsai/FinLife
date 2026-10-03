@@ -38,7 +38,7 @@ def test_analysis_uses_the_no_event_baseline(maya):
     """analyze(profile) is computed from simulate(profile, []) and year-0 flows."""
     a = analyze(maya)
     baseline = simulate(copy.deepcopy(maya), [])
-    retire_row = baseline["years"][-1]
+    retire_row = next(r for r in baseline["years"] if r["age"] == maya["retire_age"])
     assert a["retirement_projected"] == retire_row["retirement"]
     assert a["retirement_target"] == 25 * retire_row["expenses"]
 
@@ -80,7 +80,7 @@ def test_debt_to_income(maya):
 def test_retirement_target_projected_and_ratio(maya):
     """target = 25 x expenses on the retire_age row; projected = retirement there; ratio 3 dp."""
     baseline = simulate(copy.deepcopy(maya), [])
-    retire_row = baseline["years"][-1]
+    retire_row = next(r for r in baseline["years"] if r["age"] == maya["retire_age"])
     a = analyze(maya)
     assert a["retirement_target"] == 25 * retire_row["expenses"]
     assert a["retirement_projected"] == retire_row["retirement"]

@@ -5,6 +5,7 @@ import re
 import pytest
 
 from app.config import aws_session, get_settings
+from engine import PLAN_TO_AGE
 
 STUB_REPLY = "The coach isn't connected yet (stub). I got your question and left your plan unchanged."
 HOUSE = {"type": "buy_house", "age": 28, "price": 350000, "down_pct": 0.1, "rate": 0.065, "years": 30}
@@ -47,8 +48,7 @@ def test_simulate_returns_one_row_per_age(client, maya):
     response = client.post("/simulate", json={"profile": maya, "events": []})
     assert response.status_code == 200
     years = response.json()["years"]
-    assert len(years) == maya["retire_age"] - maya["age"] + 1
-    assert [row["age"] for row in years] == list(range(maya["age"], maya["retire_age"] + 1))
+    assert [row["age"] for row in years] == list(range(maya["age"], PLAN_TO_AGE + 1))
 
 
 def test_stub_responses_set_stub_header(client, maya, stub_engine):
@@ -100,7 +100,7 @@ def test_analyze_shape(client, maya):
         "job_loss",
         "set_retirement_pct",
     ]
-    assert len(body["baseline"]["years"]) == maya["retire_age"] - maya["age"] + 1
+    assert len(body["baseline"]["years"]) == PLAN_TO_AGE - maya["age"] + 1
 
 
 def test_chat_suggested_prompt_adds_event_and_writes_one_audit_line(client, maya, local_dir):

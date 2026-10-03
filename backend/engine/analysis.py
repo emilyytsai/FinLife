@@ -27,7 +27,7 @@ def analyze(profile: dict) -> dict:
     """
     baseline = simulate(profile, [])
     flows = _year_zero_flows(profile)
-    retire_row = baseline["years"][-1]
+    retire_row = next(row for row in baseline["years"] if row["age"] == profile["retire_age"])
 
     income_0 = flows["income"]
     expenses_0 = flows["expenses"]

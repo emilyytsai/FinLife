@@ -82,7 +82,7 @@ export interface YearRow {
   net_worth: number;
 }
 
-export type FlagCode = "low_emergency_fund" | "negative_cash";
+export type FlagCode = "low_emergency_fund" | "negative_cash" | "savings_depleted";
 
 export interface Flag {
   age: number;

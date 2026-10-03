@@ -73,13 +73,13 @@ body {
 .age-range::-webkit-slider-runnable-track {
   height: 2px;
   border-radius: 1px;
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.1);
 }
 
 .age-range::-moz-range-track {
   height: 2px;
   border-radius: 1px;
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.1);
 }
 
 .age-range::-webkit-slider-thumb {

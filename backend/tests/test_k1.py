@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from engine.simulate import simulate
+from engine.simulate import PLAN_TO_AGE, simulate
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROFILES = json.loads((BACKEND_DIR / "fixtures" / "profiles.json").read_text(encoding="utf-8"))
@@ -25,12 +25,12 @@ def maya():
 
 
 def test_maya_no_events_has_one_row_per_age(maya):
-    """Maya with no events returns 39 rows, ages 22 to 60 inclusive."""
+    """Maya with no events returns one row per age from 22 through PLAN_TO_AGE (95): 74 rows."""
     res = simulate(maya, [])
-    assert len(res["years"]) == 39
+    assert len(res["years"]) == PLAN_TO_AGE - 22 + 1
     assert res["years"][0]["age"] == 22
-    assert res["years"][-1]["age"] == 60
-    assert [r["age"] for r in res["years"]] == list(range(22, 61))
+    assert res["years"][-1]["age"] == PLAN_TO_AGE
+    assert [r["age"] for r in res["years"]] == list(range(22, PLAN_TO_AGE + 1))
 
 
 def test_maya_age_22_row_matches_schema_example(maya):
@@ -319,7 +319,7 @@ def test_every_event_type_works_at_profile_age(maya):
     ]
     for evs in event_sets:
         res = simulate(copy.deepcopy(maya), evs)
-        assert len(res["years"]) == 39
+        assert len(res["years"]) == PLAN_TO_AGE - 22 + 1
         assert res["years"][0]["age"] == 22
 
 
@@ -406,13 +406,14 @@ def test_flags_first_occurrence_only_sorted_by_age(maya):
 
 
 def test_summary_comes_from_retire_row_and_min_cash(maya):
-    """net_worth/retirement_at_retire come from the retire_age row; min_cash_age is the earliest min."""
+    """net_worth/retirement_at_retire come from the retire_age row; min_cash covers the working years (through
+    retire_age) and min_cash_age is the earliest age of that minimum."""
     res = simulate(maya, [])
-    retire_row = res["years"][-1]
+    retire_row = next(r for r in res["years"] if r["age"] == maya["retire_age"])
     assert res["summary"]["net_worth_at_retire"] == retire_row["net_worth"]
     assert res["summary"]["retirement_at_retire"] == retire_row["retirement"]
-    cash_values = [r["cash"] for r in res["years"]]
-    min_cash = min(cash_values)
-    expected_age = next(r["age"] for r in res["years"] if r["cash"] == min_cash)
+    working = [r for r in res["years"] if r["age"] <= maya["retire_age"]]
+    min_cash = min(r["cash"] for r in working)
+    expected_age = next(r["age"] for r in working if r["cash"] == min_cash)
     assert res["summary"]["min_cash"] == min_cash
     assert res["summary"]["min_cash_age"] == expected_age
