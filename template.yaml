@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: FinLife API on Lambda behind a Function URL, with Bedrock, Bedrock Guardrails, and DynamoDB.
+
+# Deploy with deploy/deploy.py: it builds backend/.build/lambda with Linux wheels and runs
+# `aws cloudformation package` and `deploy`, so neither SAM CLI nor Docker is needed.
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: us.anthropic.claude-sonnet-5
+  BedrockFallbackModelId:
+    Type: String
+    Default: us.anthropic.claude-haiku-4-5-20251001-v1:0
+  GuardrailId:
+    Type: String
+    Default: z4c58qax6aju
+  GuardrailVersion:
+    Type: String
+    Default: "2"
+  FrontendUrl:
+    Type: String
+    Default: http://localhost:3000
+    Description: Base of the share links (FRONTEND_URL + "/brief/?id=...").
+  AllowedOrigins:
+    Type: String
+    Default: http://localhost:3000
+    Description: Comma-separated browser origins for FastAPI's CORS. The Function URL has no CORS of its own.
+  StubAi:
+    Type: String
+    Default: "0"
+    AllowedValues: ["0", "1"]
+
+Resources:
+  BriefsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: finlife-briefs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+  AuditTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: finlife-audit
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+        - AttributeName: ts
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+        - AttributeName: ts
+          KeyType: RANGE
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/finlife-api
+      RetentionInDays: 14
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ApiLogGroup
+    Properties:
+      FunctionName: finlife-api
+      CodeUri: backend/.build/lambda
+      Handler: lambda_handler.handler
+      Runtime: python3.12
+      Architectures: [x86_64]
+      MemorySize: 1024
+      # The frontend gives up at 45 s; a chat with a tool loop, a rewrite, and the guardrail fits well inside 60 s.
+      Timeout: 60
+      # Importing anthropic makes a cold start take about 5 s. Two instances stay initialized so the
+      # frontend's parallel /analyze and /compare calls never wait on one during the demo.
+      AutoPublishAlias: live
+      ProvisionedConcurrencyConfig:
+        ProvisionedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          BEDROCK_FALLBACK_MODEL_ID: !Ref BedrockFallbackModelId
+          GUARDRAIL_ID: !Ref GuardrailId
+          GUARDRAIL_VERSION: !Ref GuardrailVersion
+          BRIEFS_TABLE: !Ref BriefsTable
+          AUDIT_TABLE: !Ref AuditTable
+          FRONTEND_URL: !Ref FrontendUrl
+          ALLOWED_ORIGINS: !Ref AllowedOrigins
+          FINLIFE_STUB_AI: !Ref StubAi
+          FINLIFE_LOCAL_DIR: /tmp/finlife
+      Policies:
+        - Statement:
+            - Sid: InvokeClaude
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource:
+                # us.* model IDs are cross-region inference profiles that route to us-east-1, us-east-2, or us-west-2.
+                - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/us.anthropic.*
+                - arn:aws:bedrock:*::foundation-model/anthropic.*
+            - Sid: ApplyGuardrail
+              Effect: Allow
+              Action: bedrock:ApplyGuardrail
+              Resource:
+                - !Sub arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:guardrail/${GuardrailId}
+                # The Standard tier routes through this cross-region guardrail profile.
+                - !Sub arn:aws:bedrock:*:${AWS::AccountId}:guardrail-profile/us.guardrail.v1:0
+            - Sid: BriefsAndAudit
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource:
+                - !GetAtt BriefsTable.Arn
+                - !GetAtt AuditTable.Arn
+      # No Cors block on purpose: FastAPI sends the CORS headers, and duplicates break the browser.
+      FunctionUrlConfig:
+        AuthType: NONE
+
+  # Public Function URLs also need lambda:InvokeFunction, limited here to calls that come through the URL.
+  # The URL is on the live alias (AutoPublishAlias), so the permission is too.
+  ApiFunctionUrlInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ApiFunction.Alias
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
+Outputs:
+  FunctionUrl:
+    Description: The API base URL (NEXT_PUBLIC_API_URL for the frontend).
+    Value: !GetAtt ApiFunctionUrl.FunctionUrl
+  BriefsTableName:
+    Value: !Ref BriefsTable
+  AuditTableName:
+    Value: !Ref AuditTable

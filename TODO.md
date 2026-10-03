@@ -37,6 +37,7 @@ Tentative and shared: every teammate and every Claude session works from this fi
 - [x] Phase 0: contracts, backend skeleton with stubs, frontend lib and wiring page (main, Fri 11:06 AM)
 - [x] Shared AWS session for the hackathon account and the CLAUDE.md rule (PR #1, Fri 11:57 AM)
 - [x] Categories submitted (Fri, before noon)
+- [x] API on AWS: stack `finlife` (template.yaml, deploy/deploy.py) with Lambda, Function URL, DynamoDB, Bedrock, and the guardrail; /chat, /share, and /brief verified end to end (api, Sat 3:00 AM)
 
 ## Timeline (PT)
 | When | Done by then | If it slips |
@@ -56,14 +57,15 @@ Non-secret only. Never paste AWS keys here. Fill these in as they become known.
 - Bedrock model ID (Sonnet 5): us.anthropic.claude-sonnet-5
 - Fallback model ID (Haiku 4.5): us.anthropic.claude-haiku-4-5-20251001-v1:0
 - Guardrail ID / version: z4c58qax6aju / 2 (finlife-advice). Version 2 uses the Standard tier, because the classic tier (version 1) blocked normal 401(k) replies. Standard routes through the cross-region profile us.guardrail.v1:0, so the Lambda's bedrock:ApplyGuardrail also needs arn:aws:bedrock:*:${AWS::AccountId}:guardrail-profile/us.guardrail.v1:0 (us-east-1, us-east-2, us-west-2) next to the guardrail ARN.
-- Function URL:
+- Function URL: https://jltjn72hdvtqanv5irneaskr3y0kirbs.lambda-url.us-east-1.on.aws (stack `finlife`, function finlife-api, alias live with 2 provisioned instances). Redeploy from the repo root: `.venv\Scripts\python deploy\deploy.py` (macOS: `.venv/bin/python deploy/deploy.py`).
 - Amplify URL:
 - Organizer answers: Is the account up through judging? How does each teammate log in? Can we create IAM roles and CloudFormation stacks (SAM)? Can Amplify connect to GitHub? Are public Function URLs, DynamoDB, and Guardrails allowed?
   - Up through judging: yes (Sat 9:30 to 11:00 AM PT).
-  - IAM roles and CloudFormation: should be allowed; K4 stops and reports if not.
-  - Public Function URLs: Kevin's hello-world test pending (backup: API Gateway HTTP API).
+  - IAM roles and CloudFormation: allowed (stack `finlife` created Sat 2:45 AM).
+  - Public Function URLs: allowed (finlife-api answers publicly).
+  - DynamoDB: allowed (finlife-briefs and finlife-audit are live).
   - Guardrails: allowed (finlife-advice created from the finlife profile, Fri 8:29 PM).
-  - Still open: teammate logins, Amplify to GitHub, DynamoDB.
+  - Still open: teammate logins, Amplify to GitHub.
 
 ### Local setup reminders
 - Kevin and Emi: keep FINLIFE_STUB_AI=1 and leave GUARDRAIL_ID and GUARDRAIL_VERSION blank in backend/.env. Only Brian calls Bedrock during development, because the whole team shares the 1-call-per-second limit. With those set, the API runs on stub replies and never calls AWS.
