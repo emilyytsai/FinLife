@@ -5,6 +5,7 @@ import {
   cashStackCloud,
   childCloud,
   creditCardCloud,
+  debtCloud,
   debitCardCloud,
   houseCloud,
   investmentsCloud,
@@ -37,6 +38,7 @@ const MODELS = {
   suv: once(suvCloud),
   debit: once(debitCardCloud),
   credit: once(creditCardCloud),
+  debt: once(debtCloud),
   cash: once(cashStackCloud),
   network: once(networkSphereCloud),
   cube: once(savingsCubeCloud),
@@ -76,6 +78,9 @@ export const DebitCardAsset = ({ className = "size-24", phase = 0 }: AssetProps)
 );
 export const CreditCardAsset = ({ className = "size-24", phase = 0.9 }: AssetProps) => (
   <PointCloud cloud={MODELS.credit()} motion="sway" angle={-0.35} tilt={0.35} phase={phase} className={className} />
+);
+export const DebtAsset = ({ className = "size-24", phase = 0.6 }: AssetProps) => (
+  <PointCloud cloud={MODELS.debt()} motion="sway" angle={-0.3} tilt={0.25} phase={phase} className={className} />
 );
 export const CashStackAsset = ({ className = "size-24", phase = 0.3 }: AssetProps) => (
   <PointCloud cloud={MODELS.cash()} motion="spin" speed={0.25} tilt={0.4} phase={phase} className={className} />

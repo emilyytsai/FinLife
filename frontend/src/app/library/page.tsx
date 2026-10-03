@@ -5,6 +5,7 @@ import {
   ChildAsset,
   CreditCardAsset,
   DebitCardAsset,
+  DebtAsset,
   HouseAsset,
   InvestmentsAsset,
   MarketNodesAsset,
@@ -53,12 +54,15 @@ export default function LibraryPage() {
       </div>
 
       <h2 className="mt-10 text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Quantifiable</h2>
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-9">
         <Tile name="Debit">
           <DebitCardAsset />
         </Tile>
         <Tile name="Credit">
           <CreditCardAsset />
+        </Tile>
+        <Tile name="Debt">
+          <DebtAsset />
         </Tile>
         <Tile name="Cash">
           <CashStackAsset />

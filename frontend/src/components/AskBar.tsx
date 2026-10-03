@@ -58,7 +58,7 @@ export function AskInput({ pending, disabled, onSend }: AskInputProps) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           maxLength={500}
-          className="w-full rounded-full border border-line bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+          className="glass-inset w-full rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ink/20"
         />
         {showPlaceholder && (
           <AnimatedPlaceholder
@@ -72,7 +72,7 @@ export function AskInput({ pending, disabled, onSend }: AskInputProps) {
         type="submit"
         disabled={busy || !draft.trim()}
         aria-label="Ask"
-        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-canvas disabled:opacity-40"
+        className="glass-strong flex size-11 shrink-0 items-center justify-center rounded-full text-ink disabled:opacity-40"
       >
         <Send size={16} aria-hidden="true" />
       </button>
@@ -98,7 +98,7 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
   const busy = pending || disabled;
 
   return (
-    <section className="space-y-3 rounded-card bg-surface p-4 shadow-soft sm:p-5" aria-label="Your what-ifs">
+    <section className="glass space-y-3 rounded-card p-4 sm:p-5" aria-label="Your what-ifs">
       {noChange && !pending && (
         <p className="text-sm text-muted">No change to your timeline. Try a life event, like buying a home or a job change.</p>
       )}

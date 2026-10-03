@@ -6,7 +6,7 @@ import { AnimatedNumber } from "@/components/AnimatedNumber";
 import {
   ChildAsset,
   CreditCardAsset,
-  DebitCardAsset,
+  DebtAsset,
   InvestmentsAsset,
   HouseAsset,
   NetworkSphereAsset,
@@ -14,7 +14,7 @@ import {
   SedanAsset,
   SuvAsset,
 } from "@/components/cloud/assets";
-import { money } from "@/lib/format";
+import { money, pct } from "@/lib/format";
 import { lifeAt, type Detail, type LifeFigure } from "@/lib/lifeState";
 import type { Compare, LifeEvent, Profile } from "@/lib/types";
 
@@ -29,6 +29,8 @@ interface LifeCloudProps {
 interface Section {
   title: string;
   details: Detail[];
+  /** A short sentence instead of (or above) the rows. */
+  note?: string;
 }
 
 const section = (figure: LifeFigure | undefined): Section[] =>
@@ -67,6 +69,53 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
   const cars = groups.cars?.figures ?? [];
   const debt = groups.debt?.figures[0];
   const savings = groups.savings?.figures[0];
+
+  // Hover cards for the money tiles. Every value is the engine's (this year's row and the plan's summary) or the profile's.
+  const summary = (events.length > 0 ? compare.scenario : compare.baseline).summary;
+  const noNumbers: Section[] = [{ title: "No numbers", details: [], note: "The plan has no numbers for this year." }];
+  const cashSections: Section[] =
+    outside || !row
+      ? noNumbers
+      : [
+          {
+            title: "Cash this year",
+            details: [
+              { label: "Income", value: money(row.income) },
+              { label: "Living costs", value: money(row.expenses) },
+              { label: "Cash yield", value: pct(profile.assumptions.cash_yield) },
+            ],
+          },
+          {
+            title: `Working years (to ${profile.retire_age})`,
+            details: [{ label: "Lowest cash", value: `${money(summary.min_cash)} at ${summary.min_cash_age}` }],
+          },
+        ];
+  const debtSections: Section[] = outside
+    ? noNumbers
+    : [
+        ...section(debt),
+        ...(home?.name === "house" && row ? [{ title: "Home", details: [{ label: "Home equity", value: money(row.home_equity) }] }] : []),
+      ];
+  const investmentSections: Section[] = [
+    {
+      title: "Investments",
+      details: [],
+      note: "Not in the plan yet. The engine doesn't track a brokerage portfolio, so there's no value to show.",
+    },
+  ];
+  const retirementSections: Section[] =
+    outside || !savings
+      ? noNumbers
+      : [
+          { title: "401(k)", details: savings.details },
+          {
+            title: "Outlook",
+            details: [
+              { label: "Expected return", value: `${pct(profile.assumptions.investment_return)}/yr` },
+              { label: `At ${profile.retire_age}`, value: money(summary.retirement_at_retire) },
+            ],
+          },
+        ];
   const ownsHome = home?.name === "house";
   const modelCount = 1 + kids.length + (ownsHome ? 1 : 0) + cars.length;
   const crowded = modelCount >= CROWDED_AT;
@@ -93,7 +142,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
   return (
     <MotionConfig reducedMotion="user">
-      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-black p-5 text-neutral-100 sm:p-6">
+      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-canvas p-5 text-ink sm:p-6">
         <h2 id="cloud-heading" className="sr-only">
           Your life at age {age}
         </h2>
@@ -104,7 +153,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           </dl>
         )}
         {outside && (
-          <p className="mt-1 text-center text-xs text-neutral-500">
+          <p className="mt-1 text-center text-xs text-muted">
             {outside === "before" ? "Before today: no numbers yet." : `The plan runs to age ${last}.`}
           </p>
         )}
@@ -115,7 +164,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
             <div
               className="absolute inset-x-[-20%] bottom-0 h-32 origin-bottom transition-[background-position] duration-700 ease-out [mask-image:linear-gradient(to_top,black,transparent)] [transform:perspective(420px)_rotateX(62deg)]"
               style={{
-                backgroundImage: "radial-gradient(rgba(229,229,229,0.45) 1px, transparent 1.5px)",
+                backgroundImage: "radial-gradient(var(--ground-dot) 1px, transparent 1.5px)",
                 backgroundSize: `${GROUND_STEP}px ${GROUND_STEP}px`,
                 backgroundPosition: `${-(age - profile.age) * GROUND_STEP}px 0`,
               }}
@@ -163,11 +212,21 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
         {/* The money, floating over the right of the scene on wide screens (below it on narrow ones). No borders. */}
         {row && (
           <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:w-48 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-2">
-            <Metric label="Cash" value={shown(row.cash)} visual={<DebitCardAsset className={METRIC_VISUAL} />} />
-            <Metric label="Debt" value={shown(row.debt)} visual={<CreditCardAsset className={METRIC_VISUAL} />} />
+            <Metric label="Cash" value={shown(row.cash)} sections={cashSections} visual={<CreditCardAsset className={METRIC_VISUAL} />} />
+            <Metric label="Debt" value={shown(row.debt)} sections={debtSections} visual={<DebtAsset className={METRIC_VISUAL} />} />
             {/* No investments value in the engine yet (schema has no field for it), so this shows a dash, never a made-up number. */}
-            <Metric label="Investments" value={null} visual={<InvestmentsAsset className={METRIC_VISUAL} />} />
-            <Metric label="Retirement" value={shown(row.retirement)} visual={<NetworkSphereAsset className={METRIC_VISUAL} />} />
+            <Metric
+              label="Investments"
+              value={null}
+              sections={investmentSections}
+              visual={<InvestmentsAsset className={METRIC_VISUAL} />}
+            />
+            <Metric
+              label="Retirement"
+              value={shown(row.retirement)}
+              sections={retirementSections}
+              visual={<NetworkSphereAsset className={METRIC_VISUAL} />}
+            />
           </dl>
         )}
       </section>
@@ -188,24 +247,37 @@ function Figure({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
-      <dd className={`font-light tabular-nums tracking-tight text-white ${large ? "text-5xl" : "text-2xl"}`} aria-live="polite">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{label}</dt>
+      <dd className={`font-light tabular-nums tracking-tight text-ink ${large ? "text-5xl" : "text-2xl"}`} aria-live="polite">
         {value === null ? "—" : <AnimatedNumber value={value} format={format} />}
       </dd>
     </div>
   );
 }
 
-function Metric({ label, value, visual }: { label: string; value: number | null; visual: ReactNode }) {
+/** One money tile. Hover, focus, or tap shows its specifics beside it. */
+function Metric({ label, value, visual, sections }: { label: string; value: number | null; visual: ReactNode; sections: Section[] }) {
+  const tip = useSideTip();
   return (
-    <div className="flex items-center gap-3">
-      {visual}
+    <div className="relative flex items-center gap-3" onMouseEnter={(event) => tip.show(event.currentTarget)} onMouseLeave={tip.hide}>
+      <button
+        type="button"
+        aria-label={`${label} details`}
+        aria-expanded={tip.open}
+        onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget.parentElement ?? event.currentTarget))}
+        onFocus={(event) => tip.show(event.currentTarget.parentElement ?? event.currentTarget)}
+        onBlur={tip.hide}
+        className="shrink-0 rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
+      >
+        {visual}
+      </button>
       <div>
-        <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
-        <dd className="text-2xl font-light tabular-nums tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.35)]">
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{label}</dt>
+        <dd className="text-2xl font-light tabular-nums tracking-tight text-ink drop-shadow-[0_0_8px_var(--number-glow)]">
           {value === null ? "—" : <AnimatedNumber value={value} format={money} />}
         </dd>
       </div>
+      <AnimatePresence>{tip.open && sections.length > 0 && <TipCard side={tip.side} sections={sections} />}</AnimatePresence>
     </div>
   );
 }
@@ -222,12 +294,11 @@ const TIP_POSITION: Record<Side, string> = {
   "below-end": "right-0 top-full mt-2",
 };
 
-/** One point-cloud model in the scene. Hover, focus, or tap shows its values beside it. */
-function Item({ label, sections, children }: { label: string; sections: Section[]; children: ReactNode }) {
+/** Where a hover card opens: beside its anchor toward the side with more room, or below it if neither side fits. */
+function useSideTip() {
   const [open, setOpen] = useState(false);
   const [side, setSide] = useState<Side>("right");
 
-  // Open beside the model, toward the side of the screen with more room; below it if neither side fits.
   function show(el: Element) {
     const rect = el.getBoundingClientRect();
     const roomRight = window.innerWidth - rect.right;
@@ -236,13 +307,49 @@ function Item({ label, sections, children }: { label: string; sections: Section[
     if (roomRight >= needed && roomRight >= roomLeft) setSide("right");
     else if (roomLeft >= needed) setSide("left");
     else {
-      // Below, kept on screen: lined up with the model's edge when centering would run off either side.
+      // Below, kept on screen: lined up with the anchor's edge when centering would run off either side.
       const center = rect.left + rect.width / 2;
       setSide(center - TIP_WIDTH / 2 < 8 ? "below-start" : center + TIP_WIDTH / 2 > window.innerWidth - 8 ? "below-end" : "below");
     }
     setOpen(true);
   }
 
+  return { open, side, show, hide: () => setOpen(false) };
+}
+
+/** The frosted card itself: titled blocks of label/value rows, or a short note. */
+function TipCard({ side, sections }: { side: Side; sections: Section[] }) {
+  return (
+    <motion.div
+      role="tooltip"
+      initial={{ opacity: 0, x: side === "right" ? -6 : side === "left" ? 6 : 0, y: side.startsWith("below") ? -4 : 0 }}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-line bg-surface/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
+    >
+      {sections.map((part, index) => (
+        <div key={part.title} className={index > 0 ? "mt-2 border-t border-line pt-2" : ""}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{part.title}</p>
+          {part.note && <p className="mt-1 text-ink/80">{part.note}</p>}
+          {part.details.length > 0 && (
+            <dl className="mt-1 space-y-0.5">
+              {part.details.map((detail) => (
+                <div key={detail.label} className="flex justify-between gap-3">
+                  <dt className="text-muted">{detail.label}</dt>
+                  <dd className="tabular-nums text-ink">{detail.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+/** One point-cloud model in the scene. Hover, focus, or tap shows its values beside it. */
+function Item({ label, sections, children }: { label: string; sections: Section[]; children: ReactNode }) {
+  const tip = useSideTip();
   return (
     <motion.li
       layout
@@ -251,45 +358,21 @@ function Item({ label, sections, children }: { label: string; sections: Section[
       exit={{ opacity: 0, transition: { duration: 0.3 } }}
       transition={{ duration: 0.4 }}
       className="relative"
-      onMouseEnter={(event) => show(event.currentTarget)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={(event) => tip.show(event.currentTarget)}
+      onMouseLeave={tip.hide}
     >
       <button
         type="button"
         aria-label={label}
-        aria-expanded={open}
-        onClick={(event) => (open ? setOpen(false) : show(event.currentTarget))}
-        onFocus={(event) => show(event.currentTarget)}
-        onBlur={() => setOpen(false)}
-        className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+        aria-expanded={tip.open}
+        onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget))}
+        onFocus={(event) => tip.show(event.currentTarget)}
+        onBlur={tip.hide}
+        className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
       >
         {children}
       </button>
-      <AnimatePresence>
-        {open && sections.length > 0 && (
-          <motion.div
-            role="tooltip"
-            initial={{ opacity: 0, x: side === "right" ? -6 : side === "left" ? 6 : 0, y: side.startsWith("below") ? -4 : 0 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            exit={{ opacity: 0, transition: { duration: 0.1 } }}
-            className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-white/15 bg-neutral-950/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
-          >
-            {sections.map((part, index) => (
-              <div key={part.title} className={index > 0 ? "mt-2 border-t border-white/10 pt-2" : ""}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">{part.title}</p>
-                <dl className="mt-1 space-y-0.5">
-                  {part.details.map((detail) => (
-                    <div key={detail.label} className="flex justify-between gap-3">
-                      <dt className="text-neutral-400">{detail.label}</dt>
-                      <dd className="tabular-nums text-white">{detail.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{tip.open && sections.length > 0 && <TipCard side={tip.side} sections={sections} />}</AnimatePresence>
     </motion.li>
   );
 }

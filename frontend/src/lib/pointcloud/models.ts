@@ -321,6 +321,51 @@ export function creditCardCloud(): Cloud {
   return normalize(b.build());
 }
 
+/** Debt: a small stack of statements (portrait sheets with a folded corner, line items, and a bold total). */
+export function debtCloud(): Cloud {
+  const b = new Builder(seeded(59));
+  const [w, h, fold] = [0.62, 0.86, 0.18];
+  for (let k = 0; k < 3; k++) {
+    // Each sheet behind the front one sits a little up, to the right, and back.
+    const [dx, dy, z] = [k * 0.09, k * 0.07, -k * 0.12];
+    const front = k === 0;
+    const weight = front ? 1 : 0.45;
+    const x0 = -w + dx;
+    const x1 = w + dx;
+    const y0 = -h + dy;
+    const y1 = h + dy;
+    // Outline with the top-right corner folded down.
+    b.polyline(
+      [
+        [x0, y0, z],
+        [x1, y0, z],
+        [x1, y1 - fold, z],
+        [x1 - fold, y1, z],
+        [x0, y1, z],
+      ],
+      0.022,
+      weight,
+      true,
+    );
+    if (!front) continue;
+    // The fold's flap.
+    b.polyline([[x1 - fold, y1, z], [x1 - fold, y1 - fold, z], [x1, y1 - fold, z]], 0.022, 0.8);
+    // Faint paper texture.
+    for (let y = y0 + 0.08; y <= y1 - 0.08; y += 0.09) for (let x = x0 + 0.08; x <= x1 - 0.08; x += 0.09) b.add(x, y, z, 0.1);
+    // Header block and line items: a label on the left, an amount on the right.
+    b.line([x0 + 0.12, y1 - 0.2, z], [x0 + 0.62, y1 - 0.2, z], 0.03, 1);
+    for (let i = 0; i < 6; i++) {
+      const y = y1 - 0.48 - i * 0.17;
+      b.line([x0 + 0.12, y, z], [x0 + 0.12 + 0.35 + (i % 3) * 0.12, y, z], 0.04, 0.7);
+      b.line([x1 - 0.42, y, z], [x1 - 0.12, y, z], 0.04, 0.7);
+    }
+    // A rule and a bold total at the bottom.
+    b.line([x0 + 0.12, y0 + 0.36, z], [x1 - 0.12, y0 + 0.36, z], 0.025, 0.9);
+    for (const off of [0, 0.035]) b.line([x1 - 0.55, y0 + 0.2 + off, z], [x1 - 0.12, y0 + 0.2 + off, z], 0.022, 1);
+  }
+  return normalize(b.build());
+}
+
 /** Cash: a stack of bills, each a thin scanned slab. */
 export function cashStackCloud(): Cloud {
   const b = new Builder(seeded(57));
