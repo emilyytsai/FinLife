@@ -82,7 +82,15 @@ export function FinLifeApp() {
 
             <Rise order={1}>
               {app.chartProfile && app.chartCompare ? (
-                <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} mockYears={app.mockYears} />
+                <LifeCloud
+                  profile={app.chartProfile}
+                  events={app.events}
+                  compare={app.chartCompare}
+                  age={age}
+                  mockYears={app.mockYears}
+                  scenarioPrompt={app.scenarioPrompt}
+                  onReset={app.resetScenario}
+                />
               ) : (
                 <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
               )}

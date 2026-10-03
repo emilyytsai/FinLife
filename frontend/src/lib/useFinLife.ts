@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, analyze, chat, compare, getProfiles } from "./api";
 import { withIds } from "./events";
-import { KID_HOUSEHOLD, KID_PROMPT, MOCK_PERSONA, kidEvent, mockProject, withKidScenario, type MockYear } from "./mock/household";
+import { MOCK_PERSONA, MOCK_SCENARIOS, matchScenario, mockProject, type MockScenario, type MockYear } from "./mock/household";
 import { useMockMode } from "./mock/useMockMode";
 import { useSessionId } from "./useSessionId";
 import type { Analysis, ChatStatus, Compare, DemoProfile, FieldError, LifeEvent, Message, Profile, Result, ShareRequest } from "./types";
@@ -59,6 +59,9 @@ export function useFinLife() {
   /** Mock mode (on by default on the demo branch; ?mock=off turns it off): a browser-side household projection, not the engine. */
   const mock = useMockMode();
   const [mockYears, setMockYears] = useState<Record<number, MockYear> | null>(null);
+  /** The hard-coded scenario on screen (mock mode), or null for the base household. */
+  const [mockScenario, setMockScenario] = useState<MockScenario | null>(null);
+  const mockScenarioRef = useRef<MockScenario | null>(null);
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Late responses must not overwrite newer ones.
@@ -88,6 +91,8 @@ export function useFinLife() {
     setFieldErrors([]);
     setNoChange(false);
     setLandingAge(null);
+    mockScenarioRef.current = null;
+    setMockScenario(null);
   }
 
   // Mock mode's only persona is the mock household; nothing is fetched.
@@ -151,19 +156,18 @@ export function useFinLife() {
     return () => clearTimeout(timer);
   }, [profile, mock]);
 
-  // Mock mode: numbers from the browser-side projection. The hard-coded kid scenario (a 5-year-old, a smaller
-  // apartment, one car) applies whenever its have_child event is in the list.
-  // Event handlers call this in the same update as setEvents, so the scene sees the whole trade-off (the daughter in,
-  // the condo and SUV out) as one change and can pace it.
-  function applyMock(current: Profile, list: LifeEvent[]) {
+  // Mock mode: numbers from the browser-side projection, for the base household or one hard-coded scenario.
+  // Event handlers call this in the same update as setEvents, so the scene sees the whole trade-off (e.g. the daughter
+  // in, the condo and SUV out) as one change and can pace it.
+  function applyMock(current: Profile, chosen: MockScenario | null) {
     const base = mockProject(current);
     setBaseline(base.compare.baseline);
     setAnalysis(null);
-    if (list.some((event) => event.type === "have_child")) {
-      const effective = withKidScenario(current);
-      const kid = mockProject(effective, KID_HOUSEHOLD);
-      setScenario({ baseline: base.compare.baseline, scenario: kid.compare.baseline, diff: ZERO_DIFF });
-      setMockYears(kid.years);
+    if (chosen) {
+      const effective = chosen.profile(current);
+      const projected = mockProject(effective, chosen.household);
+      setScenario({ baseline: base.compare.baseline, scenario: projected.compare.baseline, diff: ZERO_DIFF });
+      setMockYears(projected.years);
       setChartProfile(effective);
     } else {
       setScenario(null);
@@ -175,7 +179,7 @@ export function useFinLife() {
   // Profile edits (and the first load) re-run the mock projection.
   useEffect(() => {
     if (!mock || !profile) return;
-    const timer = setTimeout(() => applyMock(profile, eventsRef.current), 0);
+    const timer = setTimeout(() => applyMock(profile, mockScenarioRef.current), 0);
     return () => clearTimeout(timer);
   }, [mock, profile]);
 
@@ -183,18 +187,21 @@ export function useFinLife() {
     const content = text.trim();
     if (!profile || !content || chatPending) return false;
     if (mock) {
-      // Only the hard-coded test scenario is wired up: any question about a kid or child applies it.
-      if (!/\b(kid|kids|child|children|baby|daughter)\b/i.test(content)) {
-        setError("This demo is set up for one question for now: try “What if we had a kid 5 years ago…”.");
+      // Only the hard-coded scenarios are wired up: a typed question switches to the one it matches.
+      const chosen = matchScenario(content);
+      if (!chosen) {
+        setError("This demo is set up for the questions below for now. Pick one, or ask about a house or a kid.");
         return false;
       }
-      if (events.some((event) => event.type === "have_child")) return true;
-      const added = withIds([kidEvent(profile)]);
-      setEvents([...events, ...added]);
-      applyMock(profile, [...events, ...added]);
-      markFresh(added);
-      setLandingAge(profile.age); // she was born 5 years ago; the scene stays on today
       setError(null);
+      if (chosen.id === mockScenarioRef.current?.id) return true;
+      const added = withIds(chosen.events(profile));
+      mockScenarioRef.current = chosen;
+      setMockScenario(chosen);
+      setEvents(added);
+      applyMock(profile, chosen);
+      markFresh(added);
+      setLandingAge(profile.age); // every scenario starts today (a child from 5 years ago is already 5)
       return true;
     }
     const before = messages;
@@ -231,8 +238,7 @@ export function useFinLife() {
     if (!profile) return;
     const next = events.filter((other) => other.id !== event.id);
     if (mock) {
-      setEvents(next);
-      applyMock(profile, next);
+      resetScenario(); // a mock scenario is all or nothing
       return;
     }
     const seq = ++compareSeq.current;
@@ -255,16 +261,33 @@ export function useFinLife() {
     }
   }
 
+  /** Back to the starting point: no what-ifs. */
+  function resetScenario() {
+    if (!profile) return;
+    compareSeq.current++;
+    setEvents([]);
+    setScenario(null);
+    setNoChange(false);
+    setLandingAge(null);
+    if (mock) {
+      mockScenarioRef.current = null;
+      setMockScenario(null);
+      applyMock(profile, null);
+    }
+  }
+
   // What the chart draws: the scenario when there are events, otherwise the baseline twice.
   const chartCompare: Compare | null =
     events.length > 0 && scenario ? scenario : baseline ? { baseline, scenario: baseline, diff: ZERO_DIFF } : null;
 
   const usedTypes = new Set(events.map((event) => event.type));
   const suggestions = mock
-    ? usedTypes.has("have_child")
-      ? []
-      : [KID_PROMPT]
+    ? MOCK_SCENARIOS.filter((option) => option.id !== mockScenario?.id).map((option) => option.prompt)
     : (chatSuggestions ?? (analysis?.suggested_scenarios ?? []).filter((s) => !usedTypes.has(s.event.type)).map((s) => s.prompt));
+
+  // The question behind the scenario on screen, shown above the scene: the mock scenario's prompt, or the last question asked.
+  const lastQuestion = [...messages].reverse().find((entry) => entry.role === "user")?.content ?? null;
+  const scenarioPrompt = mock ? (mockScenario?.prompt ?? null) : events.length > 0 ? lastQuestion : null;
 
   const shareRequest: ShareRequest | null = profile ? { session_id: sessionId, profile, events, messages: toMessages(messages) } : null;
 
@@ -289,6 +312,8 @@ export function useFinLife() {
     landingAge,
     mock,
     mockYears: mock ? mockYears : null,
+    scenarioPrompt,
+    resetScenario,
     loadProfiles,
     choosePersona,
     setProfile,

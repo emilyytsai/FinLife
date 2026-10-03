@@ -2,7 +2,7 @@ import type { Compare, DemoProfile, LifeEvent, Profile, Result, YearRow } from "
 
 // MOCK DATA for the demo branch's use case: on by default there (?mock=off turns it off). Not on main or frontend.
 // The engine has no spouse, owned home, or investment portfolio, so this file projects a household in the browser.
-// That breaks the project's "all math lives in the engine" rule on purpose, for visual testing. The numbers are
+// That breaks the project's "all math lives in the engine" rule on purpose, for the demo. The numbers are
 // simplified and are not the engine's. Fictional people; no real names or data.
 
 export interface Spouse {
@@ -13,27 +13,33 @@ export interface Spouse {
 }
 
 export interface Home {
-  /** Which model to draw: the condo, or the smaller apartment. */
-  kind: "condo" | "apartment";
+  /** Which model to draw. */
+  kind: "condo" | "apartment" | "house";
   value: number;
   mortgageBalance: number;
   rate: number;
   yearsLeft: number;
   monthlyHoa: number;
+  /** Extra rows for the home's hover card (e.g. how the down payment was paid). */
+  notes?: { label: string; value: string }[];
 }
 
 export interface Household {
   spouse: Spouse;
   home: Home;
   investments: { balance: number; monthlyContribution: number };
-  /** A child already in the family: her age today and her cost this year (rises with inflation until 18). */
+  /** A child in the family: her age today and her cost this year (rises with inflation until 18). */
   child?: { ageToday: number; costToday: number };
+  /** Maya's work after the child arrives: unpaid leave in the birth year, then a reduced schedule for a while. */
+  herWork?: { leaveMonths: number; schedulePct: number; untilChildAge: number };
 }
 
 /** Extra numbers for one age that the schema's YearRow doesn't carry. */
 export interface MockYear {
   herIncome: number;
   herExpenses: number;
+  /** Maya's work this year, in words (e.g. "80% schedule"). */
+  herSchedule: string;
   spouseAge: number;
   spouseIncome: number;
   spouseExpenses: number;
@@ -43,6 +49,7 @@ export interface MockYear {
   homeValue: number;
   mortgageBalance: number;
   monthlyHoa: number;
+  homeNotes: { label: string; value: string }[];
   /** null when there's no child in this scenario. */
   childAge: number | null;
   childExpenses: number;
@@ -81,30 +88,107 @@ export const MOCK_PERSONA: DemoProfile = {
   profile: MOCK_PROFILE,
 };
 
-/**
- * Test scenario: "What if we had a kid 5 years ago, but having the same cash, savings and investments?"
- * Same incomes, husband, cash, 401(k), and portfolio. Changes: a 5-year-old daughter, a smaller apartment instead of
- * the condo, and one car (the SUV and its loan are gone). Her cost is about $18k this year, in line with the USDA's
- * estimate of roughly $310k to raise a child to 17 for a middle-income married couple, rising with inflation until 18.
- */
-export const KID_PROMPT = "What if we had a kid 5 years ago, but having the same cash, savings and investments?";
-export const KID_HOUSEHOLD: Household = {
-  ...MOCK_HOUSEHOLD,
-  home: { kind: "apartment", value: 420000, mortgageBalance: 300000, rate: 0.061, yearsLeft: 27, monthlyHoa: 380 },
-  child: { ageToday: 5, costToday: 18000 },
-};
+/** About $18k a year: in line with the USDA's estimate of roughly $310k to raise a child to 17 (middle-income couple). */
+const CHILD_COST = 18000;
 
-/** The kid scenario's profile: the same as the base, minus the SUV loan. */
-export function withKidScenario(profile: Profile): Profile {
-  return { ...profile, debts: profile.debts.filter((debt) => !/\bsuv\b/i.test(debt.name)) };
+/** A have_child event born `ageToday` years ago, at her first-year cost. */
+function childEvent(profile: Profile, ageToday: number): LifeEvent {
+  const firstYear = CHILD_COST / (1 + profile.assumptions.inflation) ** ageToday;
+  return { type: "have_child", age: profile.age - ageToday, annual_cost: Math.round(firstYear / 100) * 100 };
 }
 
-/** The have_child event behind the kid scenario: born 5 years ago, at her first-year cost. */
-export function kidEvent(profile: Profile): LifeEvent {
-  const child = KID_HOUSEHOLD.child!;
-  const firstYear = child.costToday / (1 + profile.assumptions.inflation) ** child.ageToday;
-  return { type: "have_child", age: profile.age - child.ageToday, annual_cost: Math.round(firstYear / 100) * 100 };
+// House purchase: sell the condo (6% selling costs), keep $20k cash as a cushion, and sell the brokerage account
+// (about $15k of tax on the gains). Everything else goes into the down payment on a $950k house, 30 years at 6.1%.
+const HOUSE_PRICE = 950000;
+const SALE_COSTS = 0.06;
+const CASH_KEPT = 20000;
+const BROKERAGE_TAX = 15000;
+const condoProceeds = MOCK_HOUSEHOLD.home.value * (1 - SALE_COSTS) - MOCK_HOUSEHOLD.home.mortgageBalance;
+const cashUsed = MOCK_PROFILE.cash - CASH_KEPT;
+const brokerageProceeds = MOCK_HOUSEHOLD.investments.balance - BROKERAGE_TAX;
+const downPayment = condoProceeds + cashUsed + brokerageProceeds;
+
+const k = (value: number) => `$${Math.round(value / 1000)}k`;
+const KID_WORDS = /\b(kid|kids|child|children|baby|daughter|son)\b/i;
+
+export interface MockScenario {
+  id: string;
+  /** The suggested question, also shown above the scene while the scenario is on. */
+  prompt: string;
+  /** Typed questions that mean this scenario. */
+  matches: (text: string) => boolean;
+  profile: (profile: Profile) => Profile;
+  household: Household;
+  /** Events for the timeline markers and chips. */
+  events: (profile: Profile) => LifeEvent[];
 }
+
+/** The demo's hard-coded scenarios. A typed question picks the first whose `matches` passes. */
+export const MOCK_SCENARIOS: MockScenario[] = [
+  {
+    // Sell the condo and buy a house with cash and the brokerage account. Both cars stay.
+    id: "house",
+    prompt: "What if we sell the condo and buy a house, using our cash and selling our brokerage account?",
+    matches: (text) => /\b(house|home)\b/i.test(text) || /\b(sell|selling)\b.*\bcondo\b/i.test(text),
+    profile: (profile) => ({ ...profile, cash: CASH_KEPT }),
+    household: {
+      ...MOCK_HOUSEHOLD,
+      home: {
+        kind: "house",
+        value: HOUSE_PRICE,
+        mortgageBalance: HOUSE_PRICE - downPayment,
+        rate: 0.061,
+        yearsLeft: 30,
+        monthlyHoa: 0,
+        notes: [
+          { label: "Down payment", value: k(downPayment) },
+          { label: "From the condo", value: k(condoProceeds) },
+          { label: "From cash", value: k(cashUsed) },
+          { label: "From the brokerage", value: k(brokerageProceeds) },
+        ],
+      },
+      investments: { balance: 0, monthlyContribution: MOCK_HOUSEHOLD.investments.monthlyContribution },
+    },
+    events: (profile) => [
+      {
+        type: "buy_house",
+        age: profile.age,
+        price: HOUSE_PRICE,
+        down_pct: Math.round((downPayment / HOUSE_PRICE) * 100) / 100,
+        rate: 0.061,
+        years: 30,
+      },
+    ],
+  },
+  {
+    // A child 5 years ago with the same cash, 401(k), and investments: a smaller apartment and one car.
+    id: "kid-past",
+    prompt: "What if we had a kid 5 years ago, but having the same cash, savings and investments?",
+    matches: (text) => KID_WORDS.test(text) && /\b(ago|had|earlier|already)\b/i.test(text),
+    profile: (profile) => ({ ...profile, debts: profile.debts.filter((debt) => !/\bsuv\b/i.test(debt.name)) }),
+    household: {
+      ...MOCK_HOUSEHOLD,
+      home: { kind: "apartment", value: 420000, mortgageBalance: 300000, rate: 0.061, yearsLeft: 27, monthlyHoa: 380 },
+      child: { ageToday: 5, costToday: CHILD_COST },
+    },
+    events: (profile) => [childEvent(profile, 5)],
+  },
+  {
+    // A child now: 3 months of unpaid leave, then an 80% schedule until she starts school at 5. Condo and cars stay.
+    id: "kid-now",
+    prompt: "What if we have a kid now? How would it affect my work income?",
+    matches: (text) => KID_WORDS.test(text),
+    profile: (profile) => profile,
+    household: {
+      ...MOCK_HOUSEHOLD,
+      child: { ageToday: 0, costToday: CHILD_COST },
+      herWork: { leaveMonths: 3, schedulePct: 0.8, untilChildAge: 5 },
+    },
+    events: (profile) => [childEvent(profile, 0)],
+  },
+];
+
+export const matchScenario = (text: string): MockScenario | undefined => MOCK_SCENARIOS.find((scenario) => scenario.matches(text));
 
 const PLAN_TO_AGE = 95;
 
@@ -113,8 +197,19 @@ function payment(balance: number, rate: number, years: number): number {
   return rate === 0 ? balance / years : (balance * rate) / (1 - (1 + rate) ** -years);
 }
 
+/** Maya's share of a full schedule this year, and how to say it. */
+function herWorkYear(household: Household, childAge: number | null): { share: number; label: string } {
+  const work = household.herWork;
+  if (!work || childAge === null || childAge >= work.untilChildAge) return { share: 1, label: "Full time" };
+  const pct = `${Math.round(work.schedulePct * 100)}%`;
+  if (childAge === 0) {
+    return { share: ((12 - work.leaveMonths) / 12) * work.schedulePct, label: `${work.leaveMonths} mo unpaid leave, then ${pct}` };
+  }
+  return { share: work.schedulePct, label: `${pct} schedule` };
+}
+
 /**
- * A simplified household projection, for UI testing only. Both partners earn and save into the household 401(k)
+ * A simplified household projection, for the demo only. Both partners earn and save into the household 401(k)
  * until her retire_age (he retires at the same time); the home appreciates with inflation while its mortgage
  * amortizes; the portfolio grows and takes monthly contributions. In retirement, spending comes from the portfolio,
  * then the 401(k), then cash.
@@ -140,14 +235,15 @@ export function mockProject(
     const working = age < profile.retire_age;
     const growth = (1 + profile.salary_growth) ** n;
     const inflation = (1 + a.inflation) ** n;
-    const herIncome = working ? profile.income * growth : 0;
+    const childAge = child ? child.ageToday + n : null;
+    const work = herWorkYear(household, childAge);
+    const herIncome = working ? profile.income * growth * work.share : 0;
     const hisIncome = working ? spouse.income * growth : 0;
     const contributions = working ? (herIncome + hisIncome) * profile.retirement_pct : 0;
     const match = working ? (herIncome + hisIncome) * Math.min(profile.retirement_pct, profile.employer_match_pct) : 0;
     const takeHome = (herIncome + hisIncome - contributions) * (1 - a.tax_rate);
     const herExpenses = profile.monthly_expenses * 12 * inflation;
     const hisExpenses = spouse.monthlyExpenses * 12 * inflation;
-    const childAge = child ? child.ageToday + n : null;
     const childExpenses = child && childAge !== null && childAge < 18 ? child.costToday * inflation : 0;
     const hoa = home.monthlyHoa * 12 * inflation;
     const living = herExpenses + hisExpenses + childExpenses + hoa + homeValue * a.home_cost_pct;
@@ -176,6 +272,7 @@ export function mockProject(
     extras[age] = {
       herIncome: Math.round(herIncome),
       herExpenses: Math.round(herExpenses),
+      herSchedule: working ? work.label : "Retired",
       spouseAge: spouse.age + n,
       spouseIncome: Math.round(hisIncome),
       spouseExpenses: Math.round(hisExpenses),
@@ -185,6 +282,7 @@ export function mockProject(
       homeValue: Math.round(homeValue),
       mortgageBalance: Math.round(mortgage),
       monthlyHoa: Math.round(hoa / 12),
+      homeNotes: n === 0 ? (home.notes ?? []) : [],
       childAge,
       childExpenses: Math.round(childExpenses),
     };

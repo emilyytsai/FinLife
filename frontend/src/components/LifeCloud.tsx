@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { RotateCcw } from "lucide-react";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import {
   ApartmentAsset,
@@ -32,6 +33,9 @@ interface LifeCloudProps {
   age: number;
   /** Mock mode only (demo branch): the household numbers the engine doesn't have. */
   mockYears?: Record<number, MockYear> | null;
+  /** The question behind the scenario on screen, shown top left with a reset button. Null on the starting point. */
+  scenarioPrompt?: string | null;
+  onReset?: () => void;
 }
 
 interface Section {
@@ -44,6 +48,8 @@ interface Section {
 const section = (figure: LifeFigure | undefined): Section[] =>
   figure && figure.details.length > 0 ? [{ title: figure.title, details: figure.details }] : [];
 const isSuv = (title: string) => /\b(suv|truck|van)\b/i.test(title);
+
+const HOME_TITLE: Record<MockYear["home"], string> = { condo: "Condo", apartment: "Apartment", house: "House" };
 
 /** Size of each money tile's point cloud: a little smaller on wide screens, where four stack beside the scene. */
 const METRIC_VISUAL = "size-14 sm:size-16 lg:size-16";
@@ -83,7 +89,15 @@ const GROUND_STEP = 24;
  * "Life Time Travel" as a LiDAR scan: the people and things in the user's life as point clouds on a dotted ground,
  * with the money in a data row below. Everything comes from the engine row, the profile, and the events at that age.
  */
-export function LifeCloud({ profile, events, compare, age: requestedAge, mockYears = null }: LifeCloudProps) {
+export function LifeCloud({
+  profile,
+  events,
+  compare,
+  age: requestedAge,
+  mockYears = null,
+  scenarioPrompt = null,
+  onReset,
+}: LifeCloudProps) {
   const rows = events.length > 0 ? compare.scenario.years : compare.baseline.years;
   const first = rows[0]?.age ?? profile.age;
   const last = rows[rows.length - 1]?.age ?? profile.retire_age;
@@ -158,6 +172,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
             { label: "Age", value: String(age) },
             { label: "Retire at", value: String(profile.retire_age) },
             { label: "Income this year", value: money(mockYear.herIncome) },
+            { label: "Work", value: mockYear.herSchedule },
             { label: "Her expenses", value: `${money(mockYear.herExpenses)}/yr` },
           ],
         },
@@ -180,12 +195,13 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
   const homeSections: Section[] = mockYear
     ? [
         {
-          title: mockYear.home === "condo" ? "Condo" : "Apartment",
+          title: HOME_TITLE[mockYear.home],
           details: [
             { label: "Market value", value: money(mockYear.homeValue) },
             { label: "Mortgage left", value: money(mockYear.mortgageBalance) },
             { label: "Equity", value: money(mockYear.homeValue - mockYear.mortgageBalance) },
-            { label: "HOA", value: `${money(mockYear.monthlyHoa)}/mo` },
+            ...(mockYear.monthlyHoa > 0 ? [{ label: "HOA", value: `${money(mockYear.monthlyHoa)}/mo` }] : []),
+            ...mockYear.homeNotes,
           ],
         },
       ]
@@ -216,7 +232,8 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
             ],
           },
         ];
-  const ownsHome = home?.name === "house";
+  // In mock mode the household's home is drawn from the mock numbers instead (its buy_house event is only for the timeline).
+  const ownsHome = home?.name === "house" && !mockYear;
   const modelCount = 1 + kids.length + (ownsHome ? 1 : 0) + cars.length + (mockYear ? 2 : 0);
   const crowded = modelCount >= CROWDED_AT;
 
@@ -266,6 +283,36 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
           Your life at age {age}
         </h2>
 
+        {/* The scenario on screen: its question, a reminder that it's a what-if, and a way back to the starting point. */}
+        <AnimatePresence>
+          {scenarioPrompt && (
+            <motion.div
+              key={scenarioPrompt}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6, transition: { duration: 0.2 } }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="mb-4 lg:absolute lg:left-6 lg:top-6 lg:z-10 lg:mb-0 lg:max-w-[15rem]"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">Viewing a scenario</p>
+              <p className="mt-1 text-sm leading-snug text-ink">&ldquo;{scenarioPrompt}&rdquo;</p>
+              <p className="mt-1 text-[11px] leading-snug text-muted">A what-if, not a prediction or advice.</p>
+              {onReset && (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="glass-strong fill-btn mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-ink [--fill-scale:6]"
+                  style={{ ["--btn-fill" as string]: "var(--accent)" }}
+                >
+                  <span className="circle" aria-hidden="true" />
+                  <RotateCcw size={12} aria-hidden="true" />
+                  <span>Reset scenario</span>
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {row && (
           <dl className="flex justify-center text-center">
             <Figure label="Net worth" value={shown(row.net_worth)} format={money} large />
@@ -305,7 +352,12 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
                   </Item>
                   {kids.map((kid, i) => (
                     <Item key={kid.key} id={kid.key} label={mockYear ? "Daughter" : "Child"} sections={kidSections(kid)}>
-                      <ChildAsset variant={i % 2 === 0 ? 1 : 2} phase={2 + i} className="h-24 w-12 sm:h-32 sm:w-16" />
+                      <ChildAsset
+                        variant={i % 2 === 0 ? 1 : 2}
+                        phase={2 + i}
+                        // A newborn (the "kid now" scenario) stands smaller than a 5-year-old.
+                        className={mockYear?.childAge === 0 ? "h-16 w-9 sm:h-20 sm:w-11" : "h-24 w-12 sm:h-32 sm:w-16"}
+                      />
                     </Item>
                   ))}
                   {/* Mock mode only: the husband, then the home (the condo, or the smaller apartment in the kid scenario). */}
@@ -322,6 +374,11 @@ export function LifeCloud({ profile, events, compare, age: requestedAge, mockYea
                   {mockYear?.home === "apartment" && (
                     <Item key="apartment" id="apartment" label="Apartment" sections={homeSections}>
                       <ApartmentAsset className="h-28 w-28 sm:h-36 sm:w-36" />
+                    </Item>
+                  )}
+                  {mockYear?.home === "house" && (
+                    <Item key="house" id="house" label="House" sections={homeSections}>
+                      <HouseAsset className="h-36 w-40 sm:h-52 sm:w-64" />
                     </Item>
                   )}
                   {ownsHome && home && (
