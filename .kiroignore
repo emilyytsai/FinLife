@@ -1,5 +1,23 @@
-# .kiroignore
+# Block all environment files
 .env
+.env.local
 .env.*
-**/secrets/
+.secrets
+config/secrets.json
+
+# Block cloud provider tokens and SSH keys
+.aws/
+.gcloud/
 *.pem
+*.key
+id_rsa
+id_ed25519
+
+# Block dependencies and heavy build artifacts
+node_modules/
+vendor/
+.git/
+dist/
+build/
+*.log
+npm-debug.log*

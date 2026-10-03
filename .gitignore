@@ -7,3 +7,4 @@ node_modules/
 .aws-sam/
 .local/
 .pytest_cache/
+.kiroignore
