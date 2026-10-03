@@ -17,6 +17,49 @@
   --card-radius: 12px;
   /* A hairline edge instead of a drop shadow: shadows don't read on black. */
   --soft-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+
+  /* Scene and control colors that change with the theme. */
+  --dot-far: #6b7280;
+  --dot-mid: #b8bec8;
+  --dot-near: #ffffff;
+  --dot-glow: rgb(255 255 255 / 0.55);
+  --ground-dot: rgb(229 229 229 / 0.45);
+  --number-glow: rgb(255 255 255 / 0.35);
+  --title-glow: rgb(255 255 255 / 0.35);
+  --track: rgb(255 255 255 / 0.1);
+  --thumb: #ffffff;
+  --thumb-glow: rgb(255 255 255 / 0.6);
+  --sheen-base: #d4d4d4;
+  --sheen-band: #ffffff;
+}
+
+/* Light mode: soft off-white canvas, white cards, near-black text, dark-grey dots. Chosen with the header toggle. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ink: #111827;
+  --muted: #6b7280;
+  --surface: #ffffff;
+  --canvas: #f4f4f5;
+  --line: rgb(17 24 39 / 0.1);
+  --primary: #111827;
+  --accent: #6b7280;
+  --good: #059669;
+  --watch: #b45309;
+  --alert: #dc2626;
+  --soft-shadow: 0 1px 2px rgb(17 24 39 / 0.04), 0 6px 20px rgb(17 24 39 / 0.06);
+
+  --dot-far: #c4c8cf;
+  --dot-mid: #6b7280;
+  --dot-near: #111827;
+  --dot-glow: rgb(17 24 39 / 0.12);
+  --ground-dot: rgb(17 24 39 / 0.3);
+  --number-glow: transparent;
+  --title-glow: transparent;
+  --track: rgb(17 24 39 / 0.12);
+  --thumb: #111827;
+  --thumb-glow: rgb(17 24 39 / 0.25);
+  --sheen-base: #1f2937;
+  --sheen-band: #9ca3af;
 }
 
 /* Print: back to the light palette so the advisor brief prints dark-on-white. */
@@ -73,13 +116,13 @@ body {
 .age-range::-webkit-slider-runnable-track {
   height: 2px;
   border-radius: 1px;
-  background: rgb(255 255 255 / 0.1);
+  background: var(--track);
 }
 
 .age-range::-moz-range-track {
   height: 2px;
   border-radius: 1px;
-  background: rgb(255 255 255 / 0.1);
+  background: var(--track);
 }
 
 .age-range::-webkit-slider-thumb {
@@ -89,8 +132,8 @@ body {
   margin-top: -8px;
   border: 0;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+  background: var(--thumb);
+  box-shadow: 0 0 10px var(--thumb-glow);
 }
 
 .age-range::-moz-range-thumb {
@@ -98,12 +141,12 @@ body {
   height: 18px;
   border: 0;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+  background: var(--thumb);
+  box-shadow: 0 0 10px var(--thumb-glow);
 }
 
 .age-range:focus-visible {
-  outline: 2px solid rgb(255 255 255 / 0.6);
+  outline: 2px solid var(--thumb-glow);
   outline-offset: 4px;
   border-radius: 9px;
 }
@@ -126,7 +169,7 @@ body {
 
 /* Title sheen: silver-white text with a brighter band that sweeps across every few seconds, like the scanner. */
 .brand-sheen {
-  background-image: linear-gradient(110deg, #d4d4d4 0%, #d4d4d4 42%, #ffffff 50%, #d4d4d4 58%, #d4d4d4 100%);
+  background-image: linear-gradient(110deg, var(--sheen-base) 0%, var(--sheen-base) 42%, var(--sheen-band) 50%, var(--sheen-base) 58%, var(--sheen-base) 100%);
   background-size: 300% 100%;
   background-position: 100% 0;
   -webkit-background-clip: text;
@@ -148,6 +191,84 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .brand-sheen {
     animation: none;
+  }
+}
+
+/* Glass UI. glass: frosted panels. glass-strong: a little more opaque, for buttons. glass-inset: recessed, for inputs.
+   Each has a thin frosted edge; panels and buttons catch light along the top edge. */
+.glass {
+  background-color: rgb(255 255 255 / 0.03);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow:
+    0 4px 30px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+.glass-strong {
+  background-color: rgb(255 255 255 / 0.08);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    0 2px 14px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.12);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+}
+
+.glass-strong:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.14);
+  border-color: rgb(255 255 255 / 0.28);
+}
+
+.glass-inset {
+  background-color: rgb(0 0 0 / 0.35);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow:
+    inset 0 2px 8px rgb(0 0 0 / 0.7),
+    0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+:root[data-theme="light"] .glass {
+  background-color: rgb(255 255 255 / 0.65);
+  border-color: rgb(17 24 39 / 0.08);
+  box-shadow:
+    0 4px 30px rgb(17 24 39 / 0.07),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+
+:root[data-theme="light"] .glass-strong {
+  background-color: rgb(255 255 255 / 0.85);
+  border-color: rgb(17 24 39 / 0.12);
+  box-shadow:
+    0 2px 10px rgb(17 24 39 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 1);
+}
+
+:root[data-theme="light"] .glass-strong:hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 1);
+  border-color: rgb(17 24 39 / 0.22);
+}
+
+:root[data-theme="light"] .glass-inset {
+  background-color: rgb(17 24 39 / 0.04);
+  border-color: rgb(17 24 39 / 0.1);
+  box-shadow:
+    inset 0 2px 6px rgb(17 24 39 / 0.08),
+    0 1px 0 rgb(255 255 255 / 0.9);
+}
+
+@media print {
+  .glass,
+  .glass-strong,
+  .glass-inset {
+    background-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
   }
 }
 

@@ -30,10 +30,14 @@ const REVEAL_SECONDS = 1.3;
 /** Sway half-range in radians, and how far models bob up and down (model units). */
 const SWAY = 0.5;
 const BOB = 0.03;
-const SHADES = ["#6b7280", "#b8bec8", "#ffffff"];
+/** Dot colors from far to near, read from the theme (globals.css: --dot-far, --dot-mid, --dot-near). */
+function themeShades(): string[] {
+  const style = getComputedStyle(document.documentElement);
+  return ["--dot-far", "--dot-mid", "--dot-near"].map((name) => style.getPropertyValue(name).trim() || "#ffffff");
+}
 
 /**
- * A 3D point cloud drawn on a canvas: perspective, depth-shaded grey to white dots that twinkle,
+ * A 3D point cloud drawn on a canvas: perspective, depth-shaded dots in the theme's colors that twinkle,
  * hover gently, and turn slowly. One shared animation loop; nothing is drawn while off-screen.
  */
 export function PointCloud({
@@ -70,6 +74,7 @@ export function PointCloud({
     let visible = true;
     let revealStart: number | null = reveal ? null : -Infinity;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let shades = themeShades();
     const cosT = Math.cos(tilt);
     const sinT = Math.sin(tilt);
 
@@ -134,7 +139,7 @@ export function PointCloud({
         const twinkle = reduceMotion ? 1 : 0.72 + 0.28 * Math.sin(t * (1.2 + (n % 7) * 0.35) + n * 1.7);
         const scanning = shown < 1 && front - y < 0.06;
         ctx.globalAlpha = scanning ? 1 : Math.min(1, (0.2 + 0.8 * depth) * twinkle * (0.35 + 0.65 * cloud[i + 3]));
-        ctx.fillStyle = SHADES[depth < 0.36 ? 0 : depth < 0.62 ? 1 : 2];
+        ctx.fillStyle = shades[depth < 0.36 ? 0 : depth < 0.62 ? 1 : 2];
         const s = (0.9 + 1.3 * depth) * size;
         ctx.fillRect(sx - s / 2, sy - s / 2, s, s);
       }
@@ -150,6 +155,12 @@ export function PointCloud({
       if (reduceMotion) draw(0);
     });
     resize.observe(canvas);
+    // Switching between light and dark mode recolors the dots.
+    const themeWatch = new MutationObserver(() => {
+      shades = themeShades();
+      if (reduceMotion) draw(0);
+    });
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     const intersect = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
     });
@@ -160,8 +171,9 @@ export function PointCloud({
       stop();
       resize.disconnect();
       intersect.disconnect();
+      themeWatch.disconnect();
     };
   }, [cloud, motion, angle, speed, tilt, phase, dotSize, reveal]);
 
-  return <canvas ref={canvasRef} aria-hidden="true" className={`block drop-shadow-[0_0_3px_rgba(255,255,255,0.55)] ${className ?? ""}`} />;
+  return <canvas ref={canvasRef} aria-hidden="true" className={`block drop-shadow-[0_0_3px_var(--dot-glow)] ${className ?? ""}`} />;
 }
