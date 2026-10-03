@@ -248,7 +248,7 @@ export function TimelineChart({
               role="radio"
               aria-checked={metric === option.value}
               onClick={() => setMetric(option.value)}
-              className={`rounded-full px-3 py-1 ${metric === option.value ? "bg-primary text-white" : "text-muted"}`}
+              className={`rounded-full px-3 py-1 ${metric === option.value ? "bg-primary text-canvas" : "text-muted"}`}
             >
               {option.label}
             </button>
@@ -271,7 +271,10 @@ export function TimelineChart({
             <Tooltip
               active={hover ? false : undefined}
               content={scrubber ? () => null : undefined}
-              cursor={!scrubber}
+              cursor={scrubber ? false : { stroke: "var(--line)" }}
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 8 }}
+              labelStyle={{ color: "var(--muted)" }}
+              itemStyle={{ color: "var(--ink)" }}
               formatter={(value, name) => [money(Number(value)), name === "baseline" ? "Today's path" : scenarioLabel]}
               labelFormatter={(age) => `Age ${age}`}
             />
@@ -334,7 +337,7 @@ export function TimelineChart({
         {hover && (
           <div
             role="tooltip"
-            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-medium text-white shadow-soft"
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink"
             // Keep the centered tooltip inside the chart so it never spills off a phone screen.
             style={{ left: Math.min(Math.max(hover.x, TOOLTIP_HALF_PX), Math.max(chartWidth - TOOLTIP_HALF_PX, TOOLTIP_HALF_PX)), top: hover.y - 6 }}
           >

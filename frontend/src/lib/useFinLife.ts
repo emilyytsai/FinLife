@@ -63,6 +63,8 @@ export function useFinLife() {
   const [freshIds, setFreshIds] = useState<string[]>([]);
   /** True when the last question didn't change the scenario. The reply text itself is never shown. */
   const [noChange, setNoChange] = useState(false);
+  /** Age of the earliest event the last question added, so the scene can travel there. */
+  const [landingAge, setLandingAge] = useState<number | null>(null);
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Late responses must not overwrite newer ones.
@@ -91,6 +93,7 @@ export function useFinLife() {
     setChatSuggestions(null);
     setFieldErrors([]);
     setNoChange(false);
+    setLandingAge(null);
   }
 
   function loadProfiles() {
@@ -165,7 +168,9 @@ export function useFinLife() {
       setMessages([...history, { role: "assistant", content: response.reply, status: response.status }]);
       const nextEvents = withIds(response.events);
       setEvents(nextEvents);
-      markFresh(nextEvents.filter((next) => !events.some((old) => old.id === next.id)));
+      const added = nextEvents.filter((next) => !events.some((old) => old.id === next.id));
+      markFresh(added);
+      if (added.length > 0) setLandingAge(Math.min(...added.map((event) => event.age)));
       setNoChange(sameEvents(events, nextEvents));
       setScenario(response.events.length > 0 ? response.compare : null);
       setChartProfile(profile);
@@ -238,6 +243,7 @@ export function useFinLife() {
     fieldErrors,
     freshIds,
     noChange,
+    landingAge,
     loadProfiles,
     choosePersona,
     setProfile,

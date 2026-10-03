@@ -3,28 +3,29 @@
 import { useState, type ReactNode } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
+import { AgePicker } from "@/components/AgePicker";
 import { AskBar } from "@/components/AskBar";
-import { LifeInIcons } from "@/components/LifeInIcons";
+import { LifeCloud } from "@/components/LifeCloud";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { ShareButton } from "@/components/ShareButton";
-import { TimelineChart } from "@/components/TimelineChart";
 import { useFinLife } from "@/lib/useFinLife";
 
 export function FinLifeApp() {
   const app = useFinLife();
   const [drawerOpen, setDrawerOpen] = useState(false);
   // The age picked on the timeline scrubber. It stays until the what-ifs change; then the panel jumps to
-  // the newest what-if (or today with none), so a new question shows its effect right away.
+  // the event the last question added (or today with none), so a new question shows its effect right away.
   const eventsKey = app.events.map((event) => event.id).join(",");
   const [scrub, setScrub] = useState<{ age: number; eventsKey: string } | null>(null);
   const scrubAge = scrub && scrub.eventsKey === eventsKey ? scrub.age : null;
-  const defaultAge = app.events.reduce((max, event) => Math.max(max, event.age), app.chartProfile?.age ?? 0);
+  const newestEventAge = app.events.reduce((max, event) => Math.max(max, event.age), app.chartProfile?.age ?? 0);
+  const defaultAge = app.landingAge ?? newestEventAge;
   const age = scrubAge ?? defaultAge;
 
-  function travelTo(next: number | null) {
-    if (next === null || next === scrubAge) return;
+  function travelTo(next: number) {
+    if (next === scrubAge) return;
     setScrub({ age: next, eventsKey });
   }
 
@@ -36,7 +37,7 @@ export function FinLifeApp() {
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-full flex-1 flex-col">
         <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
-          <h1 className="text-xl font-bold text-primary">FinLife</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.35)]">FinLife</h1>
           <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
         </header>
 
@@ -75,34 +76,25 @@ export function FinLifeApp() {
 
           <Rise order={1}>
             {app.chartProfile && app.chartCompare ? (
-              <LifeInIcons profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} freshIds={app.freshIds} />
+              <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} />
             ) : (
               <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
             )}
           </Rise>
 
           <Rise order={2}>
-            <div className="relative">
-              {app.chartProfile && app.chartCompare ? (
-                <TimelineChart
-                  profile={app.chartProfile}
-                  events={app.events}
-                  compare={app.chartCompare}
-                  focusAge={age}
-                  onFocusAge={travelTo}
-                  showSummary={false}
-                  plotHeight="h-32 sm:h-40"
-                  scrubber
-                />
-              ) : (
-                <Placeholder text="Your timeline appears here." />
-              )}
-              {app.chartPending && hasResults && (
-                <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
-                  Updating...
-                </span>
-              )}
-            </div>
+            {app.chartProfile ? (
+              <AgePicker
+                startAge={app.chartProfile.age}
+                endAge={app.chartProfile.retire_age}
+                age={Math.min(Math.max(age, app.chartProfile.age), app.chartProfile.retire_age)}
+                events={app.events}
+                onChange={travelTo}
+                pending={app.chartPending && hasResults}
+              />
+            ) : (
+              <Placeholder text="Your timeline appears here." />
+            )}
           </Rise>
 
           <Rise order={3}>

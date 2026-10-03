@@ -57,7 +57,7 @@ export function ProfileBar({ profiles, personaId, profile, hasErrors, onPersona,
       <button
         type="button"
         onClick={onEdit}
-        className="relative flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm font-medium hover:border-primary hover:text-primary"
+        className="relative flex items-center gap-1.5 rounded-full border border-line bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-white/30 hover:bg-white/10"
       >
         <SlidersHorizontal size={14} aria-hidden="true" />
         Edit details

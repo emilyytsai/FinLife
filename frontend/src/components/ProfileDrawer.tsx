@@ -39,7 +39,7 @@ export function ProfileDrawer({ open, onClose, children }: ProfileDrawerProps) {
       {open && (
         <div className="fixed inset-0 z-40">
           <motion.div
-            className="absolute inset-0 bg-ink/30"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -49,7 +49,7 @@ export function ProfileDrawer({ open, onClose, children }: ProfileDrawerProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Edit your details"
-            className="absolute inset-y-0 left-0 w-[380px] max-w-[92vw] overflow-y-auto bg-canvas p-4 shadow-soft"
+            className="absolute inset-y-0 left-0 w-[380px] max-w-[92vw] overflow-y-auto border-r border-line bg-canvas p-4"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
