@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
 import { AskBar } from "@/components/AskBar";
-import { LifeInIcons } from "@/components/LifeInIcons";
+import { LifeCloud } from "@/components/LifeCloud";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProfilePanel } from "@/components/ProfilePanel";
@@ -16,11 +16,12 @@ export function FinLifeApp() {
   const app = useFinLife();
   const [drawerOpen, setDrawerOpen] = useState(false);
   // The age picked on the timeline scrubber. It stays until the what-ifs change; then the panel jumps to
-  // the newest what-if (or today with none), so a new question shows its effect right away.
+  // the event the last question added (or today with none), so a new question shows its effect right away.
   const eventsKey = app.events.map((event) => event.id).join(",");
   const [scrub, setScrub] = useState<{ age: number; eventsKey: string } | null>(null);
   const scrubAge = scrub && scrub.eventsKey === eventsKey ? scrub.age : null;
-  const defaultAge = app.events.reduce((max, event) => Math.max(max, event.age), app.chartProfile?.age ?? 0);
+  const newestEventAge = app.events.reduce((max, event) => Math.max(max, event.age), app.chartProfile?.age ?? 0);
+  const defaultAge = app.landingAge ?? newestEventAge;
   const age = scrubAge ?? defaultAge;
 
   function travelTo(next: number | null) {
@@ -75,7 +76,7 @@ export function FinLifeApp() {
 
           <Rise order={1}>
             {app.chartProfile && app.chartCompare ? (
-              <LifeInIcons profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} freshIds={app.freshIds} />
+              <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} />
             ) : (
               <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
             )}
