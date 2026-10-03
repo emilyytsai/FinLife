@@ -51,7 +51,7 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
   return (
     <section
       aria-labelledby="age-heading"
-      className="flex flex-col gap-3 rounded-card bg-surface px-5 py-3 shadow-soft sm:px-6 md:flex-row md:items-center md:gap-6"
+      className="glass flex flex-col gap-3 rounded-card px-5 py-3 sm:px-6 md:flex-row md:items-center md:gap-6"
     >
       {/* One row on wider screens, so the card stays short: the age and slider, then anything passed in on the right. */}
 

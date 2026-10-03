@@ -25,7 +25,7 @@ export function ProfileBar({ profiles, personaId, profile, hasErrors, onPersona,
   ];
 
   return (
-    <section aria-label="Profile" className="flex flex-wrap items-center gap-3 rounded-card bg-surface px-4 py-3 shadow-soft">
+    <section aria-label="Profile" className="glass flex flex-wrap items-center gap-3 rounded-card px-4 py-3">
       <Pictogram name="user" size={30} className="shrink-0 text-ink" />
       <div className="min-w-0 flex-1">
         {profiles.length > 1 ? (
@@ -57,7 +57,7 @@ export function ProfileBar({ profiles, personaId, profile, hasErrors, onPersona,
       <button
         type="button"
         onClick={onEdit}
-        className="relative flex items-center gap-1.5 rounded-full border border-line bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-white/30 hover:bg-white/10"
+        className="glass-strong relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-ink"
       >
         <SlidersHorizontal size={14} aria-hidden="true" />
         Edit details
