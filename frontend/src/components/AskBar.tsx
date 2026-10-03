@@ -61,7 +61,7 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
           type="submit"
           disabled={busy || !draft.trim()}
           aria-label="Ask"
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-white disabled:opacity-50"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-canvas disabled:opacity-40"
         >
           <Send size={16} aria-hidden="true" />
         </button>

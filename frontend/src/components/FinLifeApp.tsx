@@ -37,7 +37,7 @@ export function FinLifeApp() {
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-full flex-1 flex-col">
         <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
-          <h1 className="text-xl font-bold text-primary">FinLife</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.35)]">FinLife</h1>
           <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
         </header>
 
