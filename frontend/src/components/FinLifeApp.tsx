@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
 import { AskBar } from "@/components/AskBar";
 import { LifeInIcons } from "@/components/LifeInIcons";
@@ -13,116 +14,149 @@ import { useFinLife } from "@/lib/useFinLife";
 
 export function FinLifeApp() {
   const app = useFinLife();
-  // The age under the pointer on the chart. The dashboard numbers and icons follow it.
-  const [focusAge, setFocusAge] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // The age picked on the timeline scrubber. It stays until the what-ifs change; then the panel jumps to
+  // the newest what-if (or today with none), so a new question shows its effect right away.
+  const eventsKey = app.events.map((event) => event.id).join(",");
+  const [scrub, setScrub] = useState<{ age: number; eventsKey: string } | null>(null);
+  const scrubAge = scrub && scrub.eventsKey === eventsKey ? scrub.age : null;
+  const defaultAge = app.events.reduce((max, event) => Math.max(max, event.age), app.chartProfile?.age ?? 0);
+  const age = scrubAge ?? defaultAge;
+
+  function travelTo(next: number | null) {
+    if (next === null || next === scrubAge) return;
+    setScrub({ age: next, eventsKey });
+  }
+
   const ready = app.profile !== null;
   const busy = app.chatPending || !ready;
   const hasResults = app.chartProfile !== null && app.chartCompare !== null;
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
-        <h1 className="text-xl font-bold text-primary">FinLife</h1>
-        <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
-      </header>
+    <MotionConfig reducedMotion="user">
+      <div className="flex min-h-full flex-1 flex-col">
+        <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
+          <h1 className="text-xl font-bold text-primary">FinLife</h1>
+          <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
+        </header>
 
-      {app.error && (
-        <div className="mx-auto mt-3 w-full max-w-5xl px-4 sm:px-6">
-          <div role="alert" className="flex items-center gap-3 rounded-lg border border-alert/30 bg-alert/10 px-4 py-2 text-sm">
-            <span className="flex-1">{app.error}</span>
-            {!ready && (
-              <button type="button" onClick={app.loadProfiles} className="flex items-center gap-1 font-medium text-primary">
-                <RotateCw size={14} aria-hidden="true" />
-                Retry
+        {app.error && (
+          <div className="mx-auto mt-3 w-full max-w-5xl px-4 sm:px-6">
+            <div role="alert" className="flex items-center gap-3 rounded-lg border border-alert/30 bg-alert/10 px-4 py-2 text-sm">
+              <span className="flex-1">{app.error}</span>
+              {!ready && (
+                <button type="button" onClick={app.loadProfiles} className="flex items-center gap-1 font-medium text-primary">
+                  <RotateCw size={14} aria-hidden="true" />
+                  Retry
+                </button>
+              )}
+              <button type="button" onClick={app.dismissError} aria-label="Dismiss" className="text-muted hover:text-ink">
+                <X size={16} aria-hidden="true" />
               </button>
-            )}
-            <button type="button" onClick={app.dismissError} aria-label="Dismiss" className="text-muted hover:text-ink">
-              <X size={16} aria-hidden="true" />
-            </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:px-6">
-        {app.profile ? (
-          <ProfileBar
-            profiles={app.profiles}
-            personaId={app.personaId}
-            profile={app.profile}
-            hasErrors={app.fieldErrors.length > 0}
-            onPersona={app.choosePersona}
-            onEdit={() => setDrawerOpen(true)}
-          />
-        ) : (
-          <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
         )}
 
-        {app.chartProfile && app.chartCompare && (
-          <LifeInIcons
-            profile={app.chartProfile}
-            events={app.events}
-            compare={app.chartCompare}
-            focusAge={focusAge}
-            freshIds={app.freshIds}
-          />
-        )}
+        <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:px-6">
+          <Rise order={0}>
+            {app.profile ? (
+              <ProfileBar
+                profiles={app.profiles}
+                personaId={app.personaId}
+                profile={app.profile}
+                hasErrors={app.fieldErrors.length > 0}
+                onPersona={app.choosePersona}
+                onEdit={() => setDrawerOpen(true)}
+              />
+            ) : (
+              <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
+            )}
+          </Rise>
 
-        <div className="relative">
-          {app.chartProfile && app.chartCompare ? (
-            <TimelineChart
-              profile={app.chartProfile}
+          <Rise order={1}>
+            {app.chartProfile && app.chartCompare ? (
+              <LifeInIcons profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} freshIds={app.freshIds} />
+            ) : (
+              <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
+            )}
+          </Rise>
+
+          <Rise order={2}>
+            <div className="relative">
+              {app.chartProfile && app.chartCompare ? (
+                <TimelineChart
+                  profile={app.chartProfile}
+                  events={app.events}
+                  compare={app.chartCompare}
+                  focusAge={age}
+                  onFocusAge={travelTo}
+                  showSummary={false}
+                  plotHeight="h-32 sm:h-40"
+                  scrubber
+                />
+              ) : (
+                <Placeholder text="Your timeline appears here." />
+              )}
+              {app.chartPending && hasResults && (
+                <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
+                  Updating...
+                </span>
+              )}
+            </div>
+          </Rise>
+
+          <Rise order={3}>
+            <AskBar
+              pending={app.chatPending}
+              disabled={!ready}
+              suggestions={app.suggestions}
               events={app.events}
-              compare={app.chartCompare}
-              focusAge={focusAge}
-              onFocusAge={setFocusAge}
-              showSummary={false}
-              plotHeight="h-64 sm:h-80"
+              noChange={app.noChange}
+              onSend={app.sendMessage}
+              onRemoveEvent={app.removeEvent}
+              footer={app.shareRequest && <ShareButton request={app.shareRequest} disabled={busy || app.messages.length === 0} />}
             />
-          ) : (
-            <Placeholder text={ready ? "Running your numbers..." : "Your timeline appears here."} tall />
+          </Rise>
+        </main>
+
+        <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
+
+        <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+          {app.profile && (
+            <ProfilePanel
+              profiles={app.profiles}
+              personaId={app.personaId}
+              profile={app.profile}
+              fieldErrors={app.fieldErrors}
+              onPersona={app.choosePersona}
+              onChange={app.setProfile}
+              showPersona={false}
+            />
           )}
-          {app.chartPending && hasResults && (
-            <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
-              Updating...
-            </span>
-          )}
-        </div>
+        </ProfileDrawer>
+      </div>
+    </MotionConfig>
+  );
+}
 
-        <AskBar
-          pending={app.chatPending}
-          disabled={!ready}
-          suggestions={app.suggestions}
-          events={app.events}
-          noChange={app.noChange}
-          onSend={app.sendMessage}
-          onRemoveEvent={app.removeEvent}
-          footer={app.shareRequest && <ShareButton request={app.shareRequest} disabled={busy || app.messages.length === 0} />}
-        />
-      </main>
-
-      <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
-
-      <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        {app.profile && (
-          <ProfilePanel
-            profiles={app.profiles}
-            personaId={app.personaId}
-            profile={app.profile}
-            fieldErrors={app.fieldErrors}
-            onPersona={app.choosePersona}
-            onChange={app.setProfile}
-            showPersona={false}
-          />
-        )}
-      </ProfileDrawer>
-    </div>
+/** Each main section rises into place, one after another, on first load. */
+function Rise({ order, children }: { order: number; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: order * 0.08, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
 function Placeholder({ text, tall = false }: { text: string; tall?: boolean }) {
   return (
-    <div className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-16"}`}>
+    <div
+      className={`flex items-center justify-center rounded-card bg-surface p-6 text-sm text-muted shadow-soft ${tall ? "h-96" : "h-16"}`}
+    >
       {text}
     </div>
   );

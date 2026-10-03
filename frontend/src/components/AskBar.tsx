@@ -80,7 +80,7 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
               type="button"
               disabled={busy}
               onClick={() => send(prompt)}
-              className="rounded-full border border-line px-3 py-1 text-left text-sm hover:border-primary hover:text-primary disabled:opacity-50"
+              className="rounded-full border border-line px-3 py-1 text-left text-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-soft disabled:opacity-50"
             >
               {prompt}
             </button>
