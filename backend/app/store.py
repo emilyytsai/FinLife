@@ -1,11 +1,13 @@
-"""Brief and audit storage: local files in development, DynamoDB in AWS (Brian: B2)."""
+"""Brief and audit storage: local files in development, DynamoDB in AWS."""
 
 import json
 import re
+from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 from typing import Protocol
 
-from app.config import get_settings
+from app.config import aws_session, get_settings
 
 BRIEF_ID = re.compile(r"[a-z0-9]{8}")
 
@@ -41,21 +43,46 @@ class LocalStore:
             audit_file.write(json.dumps(record) + "\n")
 
 
+def to_dynamo(item: dict) -> dict:
+    """DynamoDB rejects floats, so every float becomes a Decimal (ints, strings, bools, and None pass through)."""
+    return json.loads(json.dumps(item), parse_float=Decimal)
+
+
+def from_dynamo(value):
+    """DynamoDB returns every number as a Decimal: whole numbers come back as int and the rest as float."""
+    if isinstance(value, dict):
+        return {key: from_dynamo(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [from_dynamo(item) for item in value]
+    if isinstance(value, Decimal):
+        return int(value) if value == value.to_integral_value() else float(value)
+    return value
+
+
+@lru_cache
+def dynamodb():
+    """One DynamoDB resource per process. Lambda sends each instance one request at a time."""
+    return aws_session().resource("dynamodb")
+
+
 class DynamoStore:
-    """DynamoDB tables finlife-briefs (TTL on expires_at) and finlife-audit. Brian implements this in B2."""
+    """DynamoDB tables finlife-briefs (key id, TTL on expires_at) and finlife-audit (keys session_id and ts)."""
 
     def __init__(self, briefs_table: str, audit_table: str):
-        self.briefs_table = briefs_table
-        self.audit_table = audit_table
+        self.briefs = dynamodb().Table(briefs_table)
+        self.audit = dynamodb().Table(audit_table)
 
     def save_brief(self, brief: dict) -> None:
-        raise NotImplementedError("Brian: B2")
+        self.briefs.put_item(Item=to_dynamo(brief))
 
     def get_brief(self, brief_id: str) -> dict | None:
-        raise NotImplementedError("Brian: B2")
+        if not BRIEF_ID.fullmatch(brief_id):
+            return None
+        item = self.briefs.get_item(Key={"id": brief_id}).get("Item")
+        return from_dynamo(item) if item else None
 
     def write_audit(self, record: dict) -> None:
-        raise NotImplementedError("Brian: B2")
+        self.audit.put_item(Item=to_dynamo(record))
 
 
 def get_store() -> Store:

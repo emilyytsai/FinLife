@@ -39,6 +39,7 @@ def local_dir(tmp_path):
 def client(local_dir, monkeypatch):
     monkeypatch.setenv("FINLIFE_LOCAL_DIR", str(local_dir))
     monkeypatch.setenv("FINLIFE_STUB_AI", "1")
+    monkeypatch.setenv("GUARDRAIL_ID", "")
     monkeypatch.setenv("BRIEFS_TABLE", "")
     monkeypatch.setenv("AUDIT_TABLE", "")
     monkeypatch.setenv("FRONTEND_URL", "http://localhost:3000")
