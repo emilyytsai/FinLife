@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
 import { AgePicker } from "@/components/AgePicker";
 import { AskBar, AskInput } from "@/components/AskBar";
 import { BrandHeader } from "@/components/BrandHeader";
+import { LandingIntro } from "@/components/LandingIntro";
+import { RevealGate } from "@/components/cloud/RevealGate";
 import { LifeCloud } from "@/components/LifeCloud";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
@@ -16,6 +18,9 @@ import { useFinLife } from "@/lib/useFinLife";
 export function FinLifeApp() {
   const app = useFinLife();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // The page's point clouds wait for the landing screen to lift, then scan in where the user can see them.
+  const [modelsOpen, setModelsOpen] = useState(false);
+  const revealModels = useCallback(() => setModelsOpen(true), []);
   // The age picked on the timeline scrubber. It stays until the what-ifs change; then the panel jumps to
   // the event the last question added (or today with none), so a new question shows its effect right away.
   const eventsKey = app.events.map((event) => event.id).join(",");
@@ -37,6 +42,8 @@ export function FinLifeApp() {
   return (
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-full flex-1 flex-col">
+        {/* The intro covers the page until the first numbers are in (or loading fails), then fades away. */}
+        <LandingIntro ready={hasResults || app.error !== null} onReveal={revealModels} />
         <BrandHeader />
 
         {app.error && (
@@ -56,61 +63,61 @@ export function FinLifeApp() {
           </div>
         )}
 
-        <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:px-6">
-          <Rise order={0}>
-            {app.profile ? (
-              <ProfileBar
-                profiles={app.profiles}
-                personaId={app.personaId}
-                profile={app.profile}
-                hasErrors={app.fieldErrors.length > 0}
-                onPersona={app.choosePersona}
-                onEdit={() => setDrawerOpen(true)}
-              />
-            ) : (
-              <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
-            )}
-          </Rise>
+        <RevealGate.Provider value={modelsOpen}>
+          <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 pb-12 sm:px-6 sm:pb-16">
+            <Rise order={0}>
+              {app.profile ? (
+                <ProfileBar
+                  profiles={app.profiles}
+                  personaId={app.personaId}
+                  profile={app.profile}
+                  hasErrors={app.fieldErrors.length > 0}
+                  onPersona={app.choosePersona}
+                  onEdit={() => setDrawerOpen(true)}
+                />
+              ) : (
+                <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
+              )}
+            </Rise>
 
-          <Rise order={1}>
-            {app.chartProfile && app.chartCompare ? (
-              <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} />
-            ) : (
-              <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
-            )}
-          </Rise>
+            <Rise order={1}>
+              {app.chartProfile && app.chartCompare ? (
+                <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} />
+              ) : (
+                <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
+              )}
+            </Rise>
 
-          <Rise order={2}>
-            {app.chartProfile ? (
-              <AgePicker
-                startAge={app.chartProfile.age}
-                endAge={app.chartCompare?.baseline.years.at(-1)?.age ?? app.chartProfile.retire_age}
-                age={age}
+            <Rise order={2}>
+              {app.chartProfile ? (
+                <AgePicker
+                  startAge={app.chartProfile.age}
+                  endAge={app.chartCompare?.baseline.years.at(-1)?.age ?? app.chartProfile.retire_age}
+                  age={age}
+                  events={app.events}
+                  onChange={travelTo}
+                  pending={app.chartPending && hasResults}
+                  trailing={<AskInput pending={app.chatPending} disabled={!ready} onSend={app.sendMessage} />}
+                />
+              ) : (
+                <Placeholder text="Your timeline appears here." />
+              )}
+            </Rise>
+
+            <Rise order={3}>
+              <AskBar
+                pending={app.chatPending}
+                disabled={!ready}
+                suggestions={app.suggestions}
                 events={app.events}
-                onChange={travelTo}
-                pending={app.chartPending && hasResults}
-                trailing={<AskInput pending={app.chatPending} disabled={!ready} onSend={app.sendMessage} />}
+                noChange={app.noChange}
+                onSend={app.sendMessage}
+                onRemoveEvent={app.removeEvent}
+                footer={app.shareRequest && <ShareButton request={app.shareRequest} disabled={busy || app.messages.length === 0} />}
               />
-            ) : (
-              <Placeholder text="Your timeline appears here." />
-            )}
-          </Rise>
-
-          <Rise order={3}>
-            <AskBar
-              pending={app.chatPending}
-              disabled={!ready}
-              suggestions={app.suggestions}
-              events={app.events}
-              noChange={app.noChange}
-              onSend={app.sendMessage}
-              onRemoveEvent={app.removeEvent}
-              footer={app.shareRequest && <ShareButton request={app.shareRequest} disabled={busy || app.messages.length === 0} />}
-            />
-          </Rise>
-        </main>
-
-        <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
+            </Rise>
+          </main>
+        </RevealGate.Provider>
 
         <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
           {app.profile && (

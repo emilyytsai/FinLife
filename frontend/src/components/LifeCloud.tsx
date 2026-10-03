@@ -15,6 +15,7 @@ import {
   SuvAsset,
 } from "@/components/cloud/assets";
 import { money, pct } from "@/lib/format";
+import { tipContent, tipReveal } from "@/lib/tipReveal";
 import { lifeAt, type Detail, type LifeFigure } from "@/lib/lifeState";
 import type { Compare, LifeEvent, Profile } from "@/lib/types";
 
@@ -142,7 +143,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
   return (
     <MotionConfig reducedMotion="user">
-      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-canvas p-5 text-ink sm:p-6">
+      <section aria-labelledby="cloud-heading" className="relative rounded-card p-5 text-ink sm:p-6">
         <h2 id="cloud-heading" className="sr-only">
           Your life at age {age}
         </h2>
@@ -322,13 +323,11 @@ function TipCard({ side, sections }: { side: Side; sections: Section[] }) {
   return (
     <motion.div
       role="tooltip"
-      initial={{ opacity: 0, x: side === "right" ? -6 : side === "left" ? 6 : 0, y: side.startsWith("below") ? -4 : 0 }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      {...tipReveal(side)}
       className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-line bg-surface/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
     >
       {sections.map((part, index) => (
-        <div key={part.title} className={index > 0 ? "mt-2 border-t border-line pt-2" : ""}>
+        <motion.div key={part.title} {...tipContent} className={index > 0 ? "mt-2 border-t border-line pt-2" : ""}>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{part.title}</p>
           {part.note && <p className="mt-1 text-ink/80">{part.note}</p>}
           {part.details.length > 0 && (
@@ -341,7 +340,7 @@ function TipCard({ side, sections }: { side: Side; sections: Section[] }) {
               ))}
             </dl>
           )}
-        </div>
+        </motion.div>
       ))}
     </motion.div>
   );
