@@ -301,7 +301,7 @@ export function LifeCloud({
                 <button
                   type="button"
                   onClick={onReset}
-                  className="glass-strong fill-btn mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-ink [--fill-scale:6]"
+                  className="glass-strong fill-btn mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-ink [--fill-scale:9]"
                   style={{ ["--btn-fill" as string]: "var(--accent)" }}
                 >
                   <span className="circle" aria-hidden="true" />
