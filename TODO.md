@@ -52,13 +52,17 @@ Tentative and shared: every teammate and every Claude session works from this fi
 
 ## Shared values
 Non-secret only. Never paste AWS keys here. Fill these in as they become known.
-- Event region:
-- Bedrock model ID (Sonnet 5):
-- Fallback model ID (Haiku 4.5):
+- Event region: us-east-1 (the only allowed region; "access denied" usually means the wrong region). Bedrock allows about 1 call per second for the whole account.
+- Bedrock model ID (Sonnet 5): us.anthropic.claude-sonnet-5
+- Fallback model ID (Haiku 4.5): us.anthropic.claude-haiku-4-5-20251001-v1:0
 - Guardrail ID / version:
 - Function URL:
 - Amplify URL:
 - Organizer answers: Is the account up through judging? How does each teammate log in? Can we create IAM roles and CloudFormation stacks (SAM)? Can Amplify connect to GitHub? Are public Function URLs, DynamoDB, and Guardrails allowed?
+  - Up through judging: yes (Sat 9:30 to 11:00 AM PT).
+  - IAM roles and CloudFormation: should be allowed; K4 stops and reports if not.
+  - Public Function URLs: Kevin's hello-world test pending (backup: API Gateway HTTP API).
+  - Still open: teammate logins, Amplify to GitHub, DynamoDB, Guardrails.
 
 ## Kevin: engine and AWS infra
 - [ ] K1 Engine: simulate. Due Fri 4:00 PM. Done when: the simulate placeholders in backend/tests/test_engine.py are real tests and pass; Maya's summary and flags are reported (no events, and a $350k house at 28).
@@ -68,8 +72,8 @@ Non-secret only. Never paste AWS keys here. Fill these in as they become known.
 
 ## Brian: API and AI
 - [ ] Organizer AWS answers recorded in Shared values. Due Fri 12:00 PM.
-- [ ] B0 Bedrock works from a laptop. Due Fri 12:00 PM. Needs the hackathon account login. Done when: the CLI converse call answers with --profile finlife; model IDs are in backend/.env and Shared values.
-- [ ] B1 Coach on Bedrock. Due Fri 4:00 PM. Needs B0. Done when: test_numbers.py and the aws coach test pass; replies to the 3 demo questions are reported.
+- [x] B0 Bedrock works from a laptop. Due Fri 12:00 PM. (Fri 8:12 PM) Needs the hackathon account login. Done when: the CLI converse call answers with --profile finlife; model IDs are in backend/.env and Shared values.
+- [x] B1 Coach on Bedrock. Due Fri 4:00 PM. (Fri 8:14 PM; demo replies re-run once K1 and K2 are on main) Needs B0. Done when: test_numbers.py and the aws coach test pass; replies to the 3 demo questions are reported.
 - [ ] B2 Guardrail and audit log. Due Fri 8:00 PM. Needs the finlife-advice guardrail created in the console. Done when: the bait reply is blocked; Decimal round-trip tests pass; each /chat writes one audit record; the guardrail ID and version are in Shared values.
 - [ ] B3 Share and brief. Due Sat 12:00 AM. Needs B1. Done when: mocked-model tests (valid JSON, invalid JSON, a made-up number, 2 questions) all produce a valid Brief.
 - [ ] B4 Refusal tests and offline fixtures. Due Sat 4:00 AM. Needs B1 to B3 and K3. Done when: the 5 refusal tests pass; offline JSON is saved to backend/fixtures/offline and frontend/public/offline.

@@ -16,7 +16,7 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
 
-    aws_region: str = "us-west-2"
+    aws_region: str = "us-east-1"
     aws_profile: str = ""
     bedrock_model_id: str = ""
     bedrock_fallback_model_id: str = ""
