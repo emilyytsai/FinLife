@@ -20,25 +20,31 @@ type PictogramProps = Omit<SVGProps<SVGSVGElement>, "ref" | "name"> & { name: Pi
 const HOLE = "var(--surface)";
 
 const SHAPES: Record<PictogramName, ReactNode> = {
+  // Full-body standing figure: head, torso, arms apart from the body, two legs.
   user: (
     <>
-      <circle cx="12" cy="6.5" r="4.5" />
-      <path d="M3.5 22v-3a6.5 6.5 0 0 1 6.5-6.5h4a6.5 6.5 0 0 1 6.5 6.5v3z" />
+      <circle cx="12" cy="3" r="2.6" />
+      <path d="M9.4 6.2h5.2a2.6 2.6 0 0 1 2.6 2.6V14a1 1 0 0 1-2 0V9.2h-.8V22a1.1 1.1 0 0 1-2.2 0v-6.6h-.4V22a1.1 1.1 0 0 1-2.2 0V9.2h-.8V14a1 1 0 0 1-2 0V8.8a2.6 2.6 0 0 1 2.6-2.6z" />
     </>
   ),
   // Same baseline as "user", about two-thirds the height, so a family reads as one row of figures.
   child: (
     <>
-      <circle cx="12" cy="11.2" r="3.2" />
-      <path d="M6.6 22v-2.1a4.4 4.4 0 0 1 4.4-4.4h2a4.4 4.4 0 0 1 4.4 4.4V22z" />
+      <circle cx="12" cy="10.6" r="1.9" />
+      <path d="M10.6 13h2.8a1.6 1.6 0 0 1 1.6 1.6v3.8a.55.55 0 0 1-1.1 0V15h-.5v7.4a.65.65 0 0 1-1.3 0v-3.8h-.2v3.8a.65.65 0 0 1-1.3 0V15h-.5v3.4a.55.55 0 0 1-1.1 0v-3.8a1.6 1.6 0 0 1 1.6-1.6z" />
     </>
   ),
-  // Apartment block with windows and a door, for renting.
+  // Apartment tower with a rooftop, windows, an awning, and a door, for renting.
   building: (
-    <path
-      fillRule="evenodd"
-      d="M4 3.5A1.5 1.5 0 0 1 5.5 2h13A1.5 1.5 0 0 1 20 3.5V22H4zM7 5.5h3v2.6H7zM14 5.5h3v2.6h-3zM7 10.3h3v2.6H7zM14 10.3h3v2.6h-3zM7 15.1h3v2.6H7zM14 15.1h3v2.6h-3zM10.6 22v-3.6h2.8V22z"
-    />
+    <>
+      <path d="M8 .8h8v1.6H8z" />
+      <path
+        fillRule="evenodd"
+        d="M4.5 3.2A1.2 1.2 0 0 1 5.7 2h12.6a1.2 1.2 0 0 1 1.2 1.2V22h-15zM7.2 5h2.6v2.4H7.2zM10.7 5h2.6v2.4h-2.6zM14.2 5h2.6v2.4h-2.6zM7.2 9.2h2.6v2.4H7.2zM10.7 9.2h2.6v2.4h-2.6zM14.2 9.2h2.6v2.4h-2.6zM7.2 13.4h2.6v2.4H7.2zM14.2 13.4h2.6v2.4h-2.6zM10.4 22v-3.8h3.2V22z"
+      />
+      <path d="M2.5 22h19v1.4h-19z" />
+      <path d="M9.6 16.6h4.8l.8 1.2H8.8z" fill={HOLE} />
+    </>
   ),
   palm: (
     <>
@@ -55,7 +61,11 @@ const SHAPES: Record<PictogramName, ReactNode> = {
   house: (
     <>
       <path d="M16 3.2h3v5.3l-3-2.6z" />
-      <path fillRule="evenodd" d="M12 1.8 1.2 11.2h3V22h15.6V11.2h3zM10 22v-6.5h4V22z" />
+      <path
+        fillRule="evenodd"
+        d="M12 1.8 1.2 11.2h3V22h15.6V11.2h3zM10 22v-6.5h4V22zM6.5 13.2h2.6v2.6H6.5zM14.9 13.2h2.6v2.6h-2.6zM10.8 8.4h2.4v2.4h-2.4z"
+      />
+      <path d="M1.5 22h21v1.4h-21z" />
     </>
   ),
   baby: (

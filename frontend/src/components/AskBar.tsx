@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Send, Sparkles } from "lucide-react";
 import { EventChips } from "@/components/EventChips";
 import type { LifeEvent } from "@/lib/types";
@@ -10,12 +10,19 @@ interface AskBarProps {
   disabled: boolean;
   suggestions: string[];
   events: LifeEvent[];
+  /** The last question didn't change the timeline. */
+  noChange: boolean;
   onSend: (text: string) => Promise<boolean>;
   onRemoveEvent: (event: LifeEvent) => void;
+  /** Shown at the bottom, e.g. the share button. */
+  footer?: ReactNode;
 }
 
-/** "Ask what if" under the chart: the question box, suggestion chips, and the active what-ifs. */
-export function AskBar({ pending, disabled, suggestions, events, onSend, onRemoveEvent }: AskBarProps) {
+/**
+ * "Ask what if" under the chart: the question box, suggestion chips, and the active what-ifs.
+ * Answers show up as changes to the numbers, icons, and chart, never as reply text.
+ */
+export function AskBar({ pending, disabled, suggestions, events, noChange, onSend, onRemoveEvent, footer }: AskBarProps) {
   const [draft, setDraft] = useState("");
   const busy = pending || disabled;
 
@@ -61,6 +68,9 @@ export function AskBar({ pending, disabled, suggestions, events, onSend, onRemov
       </form>
 
       {pending && <p className="animate-pulse text-sm text-muted">Running the numbers...</p>}
+      {noChange && !pending && (
+        <p className="text-sm text-muted">No change to your timeline. Try a life event, like buying a home or a job change.</p>
+      )}
 
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2">
@@ -70,7 +80,7 @@ export function AskBar({ pending, disabled, suggestions, events, onSend, onRemov
               type="button"
               disabled={busy}
               onClick={() => send(prompt)}
-              className="rounded-full border border-line px-3 py-1 text-left text-sm hover:border-primary hover:text-primary disabled:opacity-50"
+              className="rounded-full border border-line px-3 py-1 text-left text-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-soft disabled:opacity-50"
             >
               {prompt}
             </button>
@@ -83,6 +93,8 @@ export function AskBar({ pending, disabled, suggestions, events, onSend, onRemov
           <EventChips events={events} onRemove={busy ? undefined : onRemoveEvent} />
         </div>
       )}
+
+      {footer && <div className="border-t border-line pt-3">{footer}</div>}
     </section>
   );
 }
