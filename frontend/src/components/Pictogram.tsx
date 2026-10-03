@@ -63,7 +63,7 @@ const SHAPES: Record<PictogramName, ReactNode> = {
       <path d="M16 3.2h3v5.3l-3-2.6z" />
       <path
         fillRule="evenodd"
-        d="M12 1.8 1.2 11.2h3V22h15.6V11.2h3zM10 22v-6.5h4V22zM6.5 13.2h2.6v2.6H6.5zM14.9 13.2h2.6v2.6h-2.6zM10.8 8.4h2.4v2.4h-2.4z"
+        d="M12 1.8 1.2 11.2h3V22h15.6V11.2h3zM10 22v-6.5h4V22zM6.5 13.2h2.6v2.6H6.5zM14.9 13.2h2.6v2.6h-2.6z"
       />
       <path d="M1.5 22h21v1.4h-21z" />
     </>
@@ -89,7 +89,6 @@ const SHAPES: Record<PictogramName, ReactNode> = {
   ),
   piggy: (
     <>
-      <path d="M7.6 8 10.3 3.6 13 7.6z" />
       <ellipse cx="11.5" cy="13.2" rx="8.3" ry="6.6" />
       <path d="M18.6 10.8h3.2a1.2 1.2 0 0 1 1.2 1.2v2.6a1.2 1.2 0 0 1-1.2 1.2h-3.2z" />
       <path d="M5.8 17.4h3.2v4.4H5.8zM14 17.4h3.2v4.4H14z" />

@@ -19,7 +19,7 @@ export function AnimatedNumber({ value, format, className }: AnimatedNumberProps
   const text = useTransform(current, format);
 
   useEffect(() => {
-    const controls = animate(current, value, reduceMotion ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] });
+    const controls = animate(current, value, reduceMotion ? { duration: 0 } : { duration: 1.1, ease: [0.22, 1, 0.36, 1] });
     return () => controls.stop();
   }, [current, value, reduceMotion]);
 

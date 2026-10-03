@@ -6,6 +6,7 @@ import {
   CreditCardAsset,
   DebitCardAsset,
   HouseAsset,
+  InvestmentsAsset,
   MarketNodesAsset,
   NetworkSphereAsset,
   PersonAsset,
@@ -52,7 +53,7 @@ export default function LibraryPage() {
       </div>
 
       <h2 className="mt-10 text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Quantifiable</h2>
-      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8">
         <Tile name="Debit">
           <DebitCardAsset />
         </Tile>
@@ -67,6 +68,9 @@ export default function LibraryPage() {
         </Tile>
         <Tile name="Savings">
           <SavingsCubeAsset />
+        </Tile>
+        <Tile name="Investments">
+          <InvestmentsAsset />
         </Tile>
         <Tile name="Stocks">
           <WaveChartAsset />
