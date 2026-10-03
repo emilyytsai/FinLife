@@ -49,6 +49,11 @@ interface TimelineChartProps {
   showSummary?: boolean;
   /** Tailwind height classes for the plot area. */
   plotHeight?: string;
+  /**
+   * Scrubber mode for the main page: a short chart that drives another panel. No y-axis, no value tooltip,
+   * small markers, the focused age stays put when the pointer leaves, and a range slider for touch and keys.
+   */
+  scrubber?: boolean;
 }
 
 interface Point {
@@ -167,6 +172,7 @@ export function TimelineChart({
   onFocusAge,
   showSummary = true,
   plotHeight = "h-80 sm:h-[26rem]",
+  scrubber = false,
 }: TimelineChartProps) {
   const [metric, setMetric] = useState<Metric>("net_worth");
   const [hover, setHover] = useState<MarkerHover | null>(null);
@@ -175,16 +181,16 @@ export function TimelineChart({
 
   /** Tells the parent which age is under the pointer, only when it changes. */
   function reportAge(age: number | null) {
-    if (age === lastReported.current) return;
+    if (!scrubber && age === lastReported.current) return;
     lastReported.current = age;
     onFocusAge?.(age);
   }
-  const compact = useIsPhone();
+  const compact = useIsPhone() || scrubber;
   // Room above the plot for one pictogram plus its stem, and half a pictogram at each side so the
   // first and last markers clear the axis labels. Taller same-age stacks may rise into the header gap.
   const markerPx = compact ? MARKER_PX.phone : MARKER_PX.desktop;
   const margin = { top: MARKER_STEM + markerPx + 12, right: compact ? markerPx / 2 + 4 : 48, bottom: 4, left: markerPx / 2 - 4 };
-  const yAxisWidth = compact ? 48 : 60;
+  const yAxisWidth = scrubber ? 0 : compact ? 48 : 60;
 
   const { baseline, scenario, diff } = compare;
   const hasScenario = events.length > 0;
@@ -210,7 +216,9 @@ export function TimelineChart({
   return (
     <section className="rounded-card bg-surface p-4 shadow-soft sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        {showSummary ? (
+        {scrubber ? (
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">Drag the timeline to travel through time</p>
+        ) : showSummary ? (
           <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <div>
               <dt className="text-muted">Net worth at {profile.retire_age}</dt>
@@ -240,7 +248,7 @@ export function TimelineChart({
               role="radio"
               aria-checked={metric === option.value}
               onClick={() => setMetric(option.value)}
-              className={`rounded-full px-3 py-1 ${metric === option.value ? "bg-primary text-white" : "text-muted"}`}
+              className={`rounded-full px-3 py-1 ${metric === option.value ? "bg-primary text-canvas" : "text-muted"}`}
             >
               {option.label}
             </button>
@@ -254,13 +262,19 @@ export function TimelineChart({
             data={data}
             margin={margin}
             onMouseMove={(state) => reportAge(state.activeLabel === undefined ? null : Number(state.activeLabel))}
-            onMouseLeave={() => reportAge(null)}
+            onMouseLeave={() => !scrubber && reportAge(null)}
+            className={scrubber ? "cursor-ew-resize" : undefined}
           >
             <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis dataKey="age" type="number" domain={[startAge, endAge]} allowDecimals={false} tickLine={false} stroke="var(--muted)" />
-            <YAxis tickFormatter={money} width={yAxisWidth} tickLine={false} axisLine={false} stroke="var(--muted)" />
+            <YAxis hide={scrubber} tickFormatter={money} width={yAxisWidth} tickLine={false} axisLine={false} stroke="var(--muted)" />
             <Tooltip
               active={hover ? false : undefined}
+              content={scrubber ? () => null : undefined}
+              cursor={scrubber ? false : { stroke: "var(--line)" }}
+              contentStyle={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 8 }}
+              labelStyle={{ color: "var(--muted)" }}
+              itemStyle={{ color: "var(--ink)" }}
               formatter={(value, name) => [money(Number(value)), name === "baseline" ? "Today's path" : scenarioLabel]}
               labelFormatter={(age) => `Age ${age}`}
             />
@@ -272,7 +286,12 @@ export function TimelineChart({
                 <ReferenceLine key={`line-${event.id ?? event.age}`} x={event.age} stroke="var(--accent)" strokeOpacity={0.35} strokeDasharray="2 4" />
               ))}
             {focusAge !== null && focusAge >= startAge && focusAge <= endAge && (
-              <ReferenceLine x={focusAge} stroke="var(--ink)" strokeOpacity={0.35} strokeWidth={1.5} />
+              <ReferenceLine
+                x={focusAge}
+                stroke={scrubber ? "var(--primary)" : "var(--ink)"}
+                strokeOpacity={scrubber ? 0.9 : 0.35}
+                strokeWidth={scrubber ? 2.5 : 1.5}
+              />
             )}
             <Line dataKey="baseline" stroke="var(--primary)" strokeWidth={2.5} dot={false} animationDuration={LINE_MS} />
             {hasScenario && (
@@ -318,7 +337,7 @@ export function TimelineChart({
         {hover && (
           <div
             role="tooltip"
-            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-xs font-medium text-white shadow-soft"
+            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink"
             // Keep the centered tooltip inside the chart so it never spills off a phone screen.
             style={{ left: Math.min(Math.max(hover.x, TOOLTIP_HALF_PX), Math.max(chartWidth - TOOLTIP_HALF_PX, TOOLTIP_HALF_PX)), top: hover.y - 6 }}
           >
@@ -326,6 +345,23 @@ export function TimelineChart({
           </div>
         )}
       </div>
+      {scrubber && onFocusAge && (
+        <div style={{ paddingLeft: margin.left, paddingRight: margin.right }}>
+          <label htmlFor="age-scrubber" className="sr-only">
+            Travel to age
+          </label>
+          <input
+            id="age-scrubber"
+            type="range"
+            min={startAge}
+            max={endAge}
+            step={1}
+            value={focusAge ?? startAge}
+            onChange={(event) => reportAge(Number(event.target.value))}
+            className="h-2 w-full cursor-pointer accent-[var(--primary)]"
+          />
+        </div>
+      )}
     </section>
   );
 }

@@ -36,7 +36,7 @@ Maya, the default demo persona:
 | Field | Meaning |
 | --- | --- |
 | age | Current age |
-| retire_age | Age the simulation ends |
+| retire_age | Age work stops (no salary or 401(k) contributions from this age on). The simulation continues to PLAN_TO_AGE |
 | income | Gross annual salary today |
 | salary_growth | Annual raise |
 | cash | Checking plus savings today |
@@ -98,8 +98,8 @@ Exactly five types. Every event may carry an optional "id" string made by the fr
 
 The age-22 row is exact for Maya. Flags and summary are illustrative.
 
-- years: one row per age from profile.age to retire_age inclusive. Money values are whole dollars.
-- flags: sorted by age. Codes: low_emergency_fund, negative_cash.
+- years: one row per age from profile.age to PLAN_TO_AGE (95) inclusive. Money values are whole dollars.
+- flags: sorted by age. Codes: low_emergency_fund, negative_cash, savings_depleted.
 
 ## Compare
 
@@ -214,7 +214,7 @@ The frontend's formatter must produce identical strings.
 
 ## Engine rules
 
-Rows run from profile.age to profile.retire_age inclusive. For each age a, in this order:
+PLAN_TO_AGE = 95. Rows run from profile.age to PLAN_TO_AGE inclusive. Ages a >= retire_age are retired years. For each age a, in this order:
 1. Apply events whose age == a, in list order.
 2. Compute this year's flows.
 3. Record the row: balances after step 1, plus this year's income and expenses.
@@ -228,7 +228,7 @@ Events, applied at the start of age a:
 - job_loss: marks age a. Months from several job_loss events at one age add up, capped at 12.
 
 Flows for age a, with n = a - profile.age:
-- income_a = income x (1 + salary_growth)^n x (1 - job_loss_months_a / 12)
+- income_a = income x (1 + salary_growth)^n x (1 - job_loss_months_a / 12) while working; 0 in retired years (so employee_a, employer_a, and take_home_a are 0 too)
 - employee_a = income_a x retirement_pct_a
 - employer_a = income_a x min(retirement_pct_a, employer_match_pct)
 - take_home_a = (income_a - employee_a) x (1 - tax_rate)
@@ -244,8 +244,15 @@ Flows for age a, with n = a - profile.age:
 - monthly_outflow_a = (expenses_a + debt_payments_a + mortgage_payment_a) / 12
 
 Next balances:
-- cash = cash + (cash x cash_yield if cash > 0) + take_home_a - expenses_a - debt_payments_a - mortgage_payment_a. Cash may go negative.
-- retirement = retirement x (1 + investment_return) + employee_a + employer_a
+- Working years:
+  - cash = cash + (cash x cash_yield if cash > 0) + take_home_a - expenses_a - debt_payments_a - mortgage_payment_a. Cash may go negative.
+  - retirement = retirement x (1 + investment_return) + employee_a + employer_a
+- Retired years: spending is drawn from the 401(k) first, grossed up for tax, then from cash.
+  - spending_a = expenses_a + debt_payments_a + mortgage_payment_a
+  - grown_a = retirement x (1 + investment_return)
+  - withdrawal_a = min(spending_a / (1 - tax_rate), grown_a), or spending_a when tax_rate is 1
+  - cash = cash + (cash x cash_yield if cash > 0) + withdrawal_a x (1 - tax_rate) - spending_a. Cash may go negative.
+  - retirement = grown_a - withdrawal_a
 - home_value = home_value x (1 + inflation)
 
 Row values:
@@ -257,10 +264,12 @@ Row values:
 Flags (first age only for each code, sorted by age):
 - low_emergency_fund: 0 <= cash < 3 x monthly_outflow_a. Message: "Cash covers {months:.1f} months of expenses".
 - negative_cash: cash < 0. Message: "Cash falls to {money(cash)}".
+- low_emergency_fund and negative_cash are checked on rows up to retire_age only.
+- savings_depleted: a > retire_age and cash < 0 (the 401(k) is used up). Message: "Cash and 401(k) are used up".
 
 Summary:
 - net_worth_at_retire and retirement_at_retire come from the retire_age row.
-- min_cash is the lowest cash across rows; min_cash_age is the earliest age it occurs.
+- min_cash is the lowest cash across rows up to retire_age; min_cash_age is the earliest age it occurs.
 
 Compare:
 - baseline = simulate(profile, []); scenario = simulate(profile, events)

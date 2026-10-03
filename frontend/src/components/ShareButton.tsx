@@ -68,7 +68,7 @@ export function ShareButton({ request, disabled = false }: ShareButtonProps) {
           <button
             type="button"
             onClick={() => handleCopy(state.url)}
-            className="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white"
+            className="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-canvas"
           >
             {state.copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
             {state.copied ? "Copied" : "Copy"}

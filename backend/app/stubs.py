@@ -83,15 +83,18 @@ def engine_is_stub(profile: dict) -> bool:
 def placeholder_simulate(profile: dict, events: list[dict]) -> dict:
     total_debt = sum(debt["balance"] for debt in profile["debts"])
     rows = []
-    for age in range(profile["age"], profile["retire_age"] + 1):
+    retire_age = profile["retire_age"]
+    for age in range(profile["age"], max(retire_age, engine.PLAN_TO_AGE) + 1):
         n = age - profile["age"]
+        working = min(age, retire_age) - profile["age"]  # years of saving so far
+        retired_years = max(0, age - retire_age)
         events_so_far = sum(1 for event in events if event["age"] <= age)
-        cash = profile["cash"] + 2000 * n - 15000 * events_so_far
-        retirement = profile["retirement_balance"] + 4000 * n
+        cash = profile["cash"] + 2000 * working - 15000 * events_so_far
+        retirement = max(0, profile["retirement_balance"] + 4000 * working - 6000 * retired_years)
         debt = max(0, total_debt - 3000 * n)
         row = {
             "age": age,
-            "income": profile["income"] * 1.03**n,
+            "income": 0 if age >= retire_age else profile["income"] * 1.03**n,
             "expenses": (profile["monthly_expenses"] + profile["monthly_rent"]) * 12 * 1.03**n,
             "cash": cash,
             "retirement": retirement,
@@ -100,7 +103,7 @@ def placeholder_simulate(profile: dict, events: list[dict]) -> dict:
             "net_worth": cash + retirement - debt,
         }
         rows.append({key: round(value) for key, value in row.items()})
-    return {"years": rows, "flags": _placeholder_flags(rows), "summary": _summary(rows)}
+    return {"years": rows, "flags": _placeholder_flags(rows), "summary": _summary(rows, retire_age)}
 
 
 def placeholder_compare(profile: dict, events: list[dict]) -> dict:
@@ -155,9 +158,11 @@ def _placeholder_flags(rows: list[dict]) -> list[dict]:
     return []
 
 
-def _summary(rows: list[dict]) -> dict:
-    last = rows[-1]
-    lowest = min(rows, key=lambda row: row["cash"])  # min keeps the first, so this is the earliest age
+def _summary(rows: list[dict], retire_age: int) -> dict:
+    """Like the engine: the retire_age row, and the lowest cash in the working years."""
+    working = [row for row in rows if row["age"] <= retire_age]
+    last = working[-1]
+    lowest = min(working, key=lambda row: row["cash"])  # min keeps the first, so this is the earliest age
     return {
         "net_worth_at_retire": last["net_worth"],
         "retirement_at_retire": last["retirement"],

@@ -30,6 +30,12 @@ function friendly(error: unknown): string {
   return error instanceof ApiError ? error.message : "Something went wrong. Try again.";
 }
 
+/** Same events, ignoring ids (the API keeps existing ids; new events arrive without one). */
+function sameEvents(a: LifeEvent[], b: LifeEvent[]): boolean {
+  const strip = (list: LifeEvent[]) => JSON.stringify(list.map((event) => ({ ...event, id: undefined })));
+  return strip(a) === strip(b);
+}
+
 function toMessages(entries: ChatEntry[]): Message[] {
   return entries.map(({ role, content }) => ({ role, content }));
 }
@@ -55,6 +61,10 @@ export function useFinLife() {
   const [fieldErrors, setFieldErrors] = useState<FieldError[]>([]);
   /** Ids of events the last chat turn added, for a short celebration in the UI. */
   const [freshIds, setFreshIds] = useState<string[]>([]);
+  /** True when the last question didn't change the scenario. The reply text itself is never shown. */
+  const [noChange, setNoChange] = useState(false);
+  /** Age of the earliest event the last question added, so the scene can travel there. */
+  const [landingAge, setLandingAge] = useState<number | null>(null);
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Late responses must not overwrite newer ones.
@@ -82,6 +92,8 @@ export function useFinLife() {
     setScenario(null);
     setChatSuggestions(null);
     setFieldErrors([]);
+    setNoChange(false);
+    setLandingAge(null);
   }
 
   function loadProfiles() {
@@ -148,6 +160,7 @@ export function useFinLife() {
     const history: ChatEntry[] = [...before, { role: "user", content }];
     setMessages(history);
     setChatPending(true);
+    setNoChange(false);
     setError(null);
     try {
       const response = await chat({ session_id: sessionId, profile, events, messages: toMessages(history) });
@@ -155,7 +168,10 @@ export function useFinLife() {
       setMessages([...history, { role: "assistant", content: response.reply, status: response.status }]);
       const nextEvents = withIds(response.events);
       setEvents(nextEvents);
-      markFresh(nextEvents.filter((next) => !events.some((old) => old.id === next.id)));
+      const added = nextEvents.filter((next) => !events.some((old) => old.id === next.id));
+      markFresh(added);
+      if (added.length > 0) setLandingAge(Math.min(...added.map((event) => event.age)));
+      setNoChange(sameEvents(events, nextEvents));
       setScenario(response.events.length > 0 ? response.compare : null);
       setChartProfile(profile);
       setChatSuggestions(response.suggestions);
@@ -226,6 +242,8 @@ export function useFinLife() {
     error,
     fieldErrors,
     freshIds,
+    noChange,
+    landingAge,
     loadProfiles,
     choosePersona,
     setProfile,

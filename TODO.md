@@ -72,8 +72,8 @@ Non-secret only. Never paste AWS keys here. Fill these in as they become known.
 - AWS keys never go in .env, code, or this file.
 
 ## Kevin: engine and AWS infra
-- [ ] K1 Engine: simulate. Due Fri 4:00 PM. Done when: the simulate placeholders in backend/tests/test_engine.py are real tests and pass; Maya's summary and flags are reported (no events, and a $350k house at 28).
-- [ ] K2 Compare, money, labels. Due Fri 4:00 PM. Done when: money() matches frontend/src/lib/format.ts (round half up, so 1250 is $1.3k); every label example in schema.md passes; K1 and K2 are merged to main.
+- [x] K1 Engine: simulate. Due Fri 4:00 PM. Done when: the simulate placeholders in backend/tests/test_engine.py are real tests and pass; Maya's summary and flags are reported (no events, and a $350k house at 28).
+- [x] K2 Compare, money, labels. Due Fri 4:00 PM. Done when: money() matches frontend/src/lib/format.ts (round half up, so 1250 is $1.3k); every label example in schema.md passes; K1 and K2 are merged to main.
 - [ ] K3 Analysis and demo tuning. Due Fri 8:00 PM. Needs K1. Done when: backend/tests/test_analysis.py passes; the demo checks are reported (no baseline flags; a cash flag between 28 and 31 with the house; a 10% 401(k) ends higher); the $5M suggested-price cap is decided.
 - [ ] K4 AWS deploy with SAM. Due Fri 8:00 PM. Needs Docker, the finlife profile, and the guardrail ID from B2 (deploy without it first if B2 isn't done). Done when: GET /health and POST /simulate on the Function URL match local; the Function URL is in Shared values.
 
@@ -109,6 +109,7 @@ Done when, for each task: npm run lint and npm run build pass, and it works on s
 - Suggested house price can go above buy_house's 5,000,000 max for incomes above about $833k (the Phase 0 stub caps it). Kevin proposes a fix in K3; a schema change needs team agreement.
 - money() must round half up in the engine and the frontend alike, so both give identical strings.
 - Owners for the demo video, the code ZIP, and the submission form.
+- Simulation past retirement (made Fri Oct 2 on `frontend`, cleared by Emi; Kevin and Brian please review): rows now run to PLAN_TO_AGE = 95. From retire_age on there's no salary or 401(k) contributions; spending is drawn from the 401(k), grossed up for tax, then from cash. New flag savings_depleted. The summary, min_cash, and the two cash flags still cover only the years up to retire_age. schema.md, engine, stub, models, and tests updated. Open: there is no retirement income (Social Security, pension), so every persona's savings run out in their mid-70s to 80.
 
 ## Blocked
 Add a line: who, what's blocking, and what's needed.

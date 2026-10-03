@@ -2,6 +2,6 @@
 
 from .analysis import analyze
 from .labels import label, money
-from .simulate import compare, simulate
+from .simulate import PLAN_TO_AGE, compare, simulate
 
-__all__ = ["simulate", "compare", "analyze", "money", "label"]
+__all__ = ["simulate", "compare", "analyze", "money", "label", "PLAN_TO_AGE"]

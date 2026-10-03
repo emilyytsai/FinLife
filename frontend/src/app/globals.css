@@ -1,19 +1,40 @@
 @import "tailwindcss";
 
-/* FinLife design tokens (our own brand, not LPL's). */
+/* FinLife design tokens (our own brand, not LPL's). Dark on screen, to match the LiDAR scene: near-black cards
+   with a faint white edge, white and silver text, a silver accent, and brighter status colors for contrast. */
 :root {
-  --ink: #0f172a;
-  --muted: #64748b;
-  --surface: #ffffff;
-  --canvas: #f6f7fb;
-  --line: #e2e8f0;
-  --primary: #2446a8;
-  --accent: #f28c28;
-  --good: #1f9d6b;
-  --watch: #d99a00;
-  --alert: #d64545;
+  color-scheme: dark;
+  --ink: #f5f5f5;
+  --muted: #8f8f8f;
+  --surface: #0c0c0c;
+  --canvas: #000000;
+  --line: rgb(255 255 255 / 0.1);
+  --primary: #f5f5f5;
+  --accent: #a3a3a3;
+  --good: #34d399;
+  --watch: #fbbf24;
+  --alert: #f87171;
   --card-radius: 12px;
-  --soft-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px rgb(15 23 42 / 0.06);
+  /* A hairline edge instead of a drop shadow: shadows don't read on black. */
+  --soft-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+/* Print: back to the light palette so the advisor brief prints dark-on-white. */
+@media print {
+  :root {
+    color-scheme: light;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --surface: #ffffff;
+    --canvas: #ffffff;
+    --line: #e2e8f0;
+    --primary: #2446a8;
+    --accent: #f28c28;
+    --good: #1f9d6b;
+    --watch: #d99a00;
+    --alert: #d64545;
+    --soft-shadow: none;
+  }
 }
 
 /* Exposed to Tailwind as text-ink, bg-primary, border-line, rounded-card, shadow-soft, font-sans, ... */
@@ -35,6 +56,78 @@
 
 body {
   background: var(--canvas);
+  color: var(--ink);
+}
+
+/* Age picker: a thin silver track with a glowing white thumb (18px, matching THUMB_HALF in AgePicker). */
+.age-range {
+  display: block;
+  width: 100%;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.age-range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.age-range::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.1);
+}
+
+.age-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+}
+
+.age-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+}
+
+.age-range:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.6);
+  outline-offset: 4px;
+  border-radius: 9px;
+}
+
+/* Typewriter placeholder: a cursor that blinks at a steady, natural rate. */
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret-blink {
+  animation: caret-blink 1.06s step-end infinite;
+}
+
+/* Native dropdown lists take their colors from the options, not the (often transparent) select. */
+select option,
+select optgroup {
+  background-color: var(--surface);
   color: var(--ink);
 }
 
