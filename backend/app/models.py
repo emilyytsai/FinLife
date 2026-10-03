@@ -70,7 +70,7 @@ class Profile(InputModel):
 class BuyHouse(InputModel):
     type: Literal["buy_house"]
     age: int
-    price: float = Field(ge=10000, le=5000000)
+    price: float = Field(ge=10000)
     down_pct: float = Field(ge=0, le=1)
     rate: float = Field(ge=0, le=0.2)
     years: int = Field(ge=1, le=40)
