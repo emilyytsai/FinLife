@@ -1,0 +1,5 @@
+# .kiroignore
+.env
+.env.*
+**/secrets/
+*.pem
