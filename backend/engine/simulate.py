@@ -2,32 +2,12 @@
 
 from decimal import ROUND_HALF_UP, Decimal
 
+from .labels import money
+
 
 def _round_money(x: float) -> int:
     """Round a float to a whole dollar, half up. Used only when building rows and the summary."""
     return int(Decimal(str(x)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
-
-
-def _money_flag(x: float) -> str:
-    """Minimal money formatter for the negative_cash flag message.
-
-    K1-only placeholder. In K2 this is replaced by engine.labels.money, which both the
-    engine and the frontend share. The flag text must match money()'s output once K2 lands.
-    """
-    if x < 0:
-        return "-" + _money_flag(-x)
-    n = _round_money(x)
-    if n < 1000:
-        return f"${n}"
-    if n < 10000:
-        text = f"{round(n / 1000, 1):.1f}".rstrip("0").rstrip(".")
-        return f"${text}k"
-    if n < 1000000:
-        return f"${round(n / 1000)}k"
-    if n < 10000000:
-        text = f"{round(n / 1000000, 1):.1f}".rstrip("0").rstrip(".")
-        return f"${text}M"
-    return f"${round(n / 1000000)}M"
 
 
 def _amortized_payment(balance: float, rate: float, years: int) -> float:
@@ -180,10 +160,11 @@ def simulate(profile: dict, events: list[dict]) -> dict:
         )
 
         # --- Flags: evaluated on the recorded cash and this year's monthly outflow ---
+        row_cash = years[-1]["cash"]  # the whole-dollar cash shown in this row
         monthly_outflow_a = (expenses_a + debt_payments_a + mortgage_payment_a) / 12
         if cash < 0 and "negative_cash" not in seen_flag_codes:
             flags.append(
-                {"age": a, "code": "negative_cash", "message": f"Cash falls to {_money_flag(cash)}"}
+                {"age": a, "code": "negative_cash", "message": f"Cash falls to {money(row_cash)}"}
             )
             seen_flag_codes.add("negative_cash")
         elif 0 <= cash < 3 * monthly_outflow_a and "low_emergency_fund" not in seen_flag_codes:
@@ -231,5 +212,14 @@ def compare(profile: dict, events: list[dict]) -> dict:
     """Return {"baseline", "scenario", "diff"} shaped like Compare.
 
     See contracts/schema.md "Compare" and the Compare part of "Engine rules".
+    - baseline = simulate(profile, [])
+    - scenario = simulate(profile, events)
+    - diff = scenario.summary minus baseline.summary, field by field
     """
-    raise NotImplementedError("Kevin: see schema.md Compare")
+    baseline = simulate(profile, [])
+    scenario = simulate(profile, events)
+    diff = {
+        key: scenario["summary"][key] - baseline["summary"][key]
+        for key in baseline["summary"]
+    }
+    return {"baseline": baseline, "scenario": scenario, "diff": diff}
