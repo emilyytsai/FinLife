@@ -172,12 +172,13 @@ function mannequin({ shoulder, head, legs, density, seed }: MannequinShape): Clo
   ellipsoid([0, up(0.02), 0], [0.2, 0.12, 0.13]);
   tube([0, up(0.1), 0], [0, up(0.24), 0], [0.17, 0.11], [0.18, 0.115]);
   ellipsoid([0, up(0.41), 0], [shoulder * 0.84, 0.18, 0.125]);
-  tube([0, up(0.58), 0], [0, up(0.68), 0], [0.048, 0.048], [0.045, 0.045]);
-  ellipsoid([0, up(0.68) + 0.13 * head, 0.005], [0.105 * head, 0.135 * head, 0.118 * head]);
+  // A short neck: the head sits close above the chest.
+  tube([0, up(0.58), 0], [0, up(0.645), 0], [0.048, 0.048], [0.045, 0.045]);
+  ellipsoid([0, up(0.645) + 0.13 * head, 0.005], [0.105 * head, 0.135 * head, 0.118 * head]);
 
   for (const s of [-1, 1]) {
     // Arms sit just inside the shoulder width, so the frame reads narrow while the chest keeps its size.
-    const x = s * (shoulder - 0.015);
+    const x = s * (shoulder - 0.03);
     // No shoulder ball: the upper arm runs out of the chest under a rounded cap.
     const cap: Vec = [0.058, 0.045, 0.06];
     // The cap sits well below the top of the chest, for a relaxed, sloping shoulder.
