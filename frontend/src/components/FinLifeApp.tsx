@@ -56,7 +56,7 @@ export function FinLifeApp() {
           </div>
         )}
 
-        <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:px-6">
+        <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 pb-12 sm:px-6 sm:pb-16">
           <Rise order={0}>
             {app.profile ? (
               <ProfileBar
@@ -110,7 +110,6 @@ export function FinLifeApp() {
           </Rise>
         </main>
 
-        <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
 
         <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
           {app.profile && (

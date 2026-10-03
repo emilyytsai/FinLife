@@ -142,7 +142,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
   return (
     <MotionConfig reducedMotion="user">
-      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-canvas p-5 text-ink sm:p-6">
+      <section aria-labelledby="cloud-heading" className="relative rounded-card p-5 text-ink sm:p-6">
         <h2 id="cloud-heading" className="sr-only">
           Your life at age {age}
         </h2>

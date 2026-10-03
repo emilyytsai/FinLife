@@ -97,7 +97,7 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
                 drawn brighter than the dimmed past. */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
               <div
-                className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-ink/45"
+                className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-accent/80"
                 style={{ left: at(within(startAge)), right: `calc(100% - ${at(within(endAge))})` }}
               />
               {[scaleMin, scaleMax].map((a) => (
