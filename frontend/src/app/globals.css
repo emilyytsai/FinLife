@@ -59,6 +59,55 @@ body {
   color: var(--ink);
 }
 
+/* Age picker: a thin silver track with a glowing white thumb (18px, matching THUMB_HALF in AgePicker). */
+.age-range {
+  display: block;
+  width: 100%;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.age-range::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.age-range::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.age-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+}
+
+.age-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgb(255 255 255 / 0.6);
+}
+
+.age-range:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.6);
+  outline-offset: 4px;
+  border-radius: 9px;
+}
+
 /* Native dropdown lists take their colors from the options, not the (often transparent) select. */
 select option,
 select optgroup {

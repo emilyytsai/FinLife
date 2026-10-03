@@ -33,7 +33,6 @@ interface Section {
 const section = (figure: LifeFigure | undefined): Section[] =>
   figure && figure.details.length > 0 ? [{ title: figure.title, details: figure.details }] : [];
 const isSuv = (title: string) => /\b(suv|truck|van)\b/i.test(title);
-const wholeNumber = (value: number) => String(Math.round(value));
 
 /** Pixels the ground grid shifts per year of age, so scrubbing reads as travel. */
 const GROUND_STEP = 24;
@@ -60,14 +59,13 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
   return (
     <MotionConfig reducedMotion="user">
-      <section aria-labelledby="cloud-heading" className="rounded-card bg-black p-5 text-neutral-100 sm:p-6">
+      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-black p-5 text-neutral-100 sm:p-6">
         <h2 id="cloud-heading" className="sr-only">
           Your life at age {age}
         </h2>
 
         {row && (
-          <dl className="flex flex-wrap items-end gap-x-10 gap-y-2">
-            <Figure label="Age" value={age} format={wholeNumber} large />
+          <dl className="flex justify-center text-center">
             <Figure label="Net worth" value={row.net_worth} format={money} large />
           </dl>
         )}
@@ -117,9 +115,9 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           </ul>
         </div>
 
-        {/* The data row: money as abstract structures with bare numbers. */}
+        {/* The money, floating over the right of the scene on wide screens (below it on narrow ones). No borders. */}
         {row && (
-          <dl className="mt-2 grid grid-cols-1 gap-3 border-t border-white/10 pt-5 min-[420px]:grid-cols-3">
+          <dl className="mt-2 grid grid-cols-1 gap-1 min-[420px]:grid-cols-3 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-3">
             <Metric label="Cash" value={row.cash} visual={<DebitCardAsset className="size-16 sm:size-20" />} />
             <Metric label="401(k)" value={row.retirement} visual={<NetworkSphereAsset className="size-16 sm:size-20" />} />
             <Metric label="Debt" value={row.debt} visual={<CreditCardAsset className="size-16 sm:size-20" />} />
@@ -143,7 +141,7 @@ function Figure({ label, value, format, large = false }: { label: string; value:
 
 function Metric({ label, value, visual }: { label: string; value: number; visual: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-2 pr-4">
+    <div className="flex items-center gap-3">
       {visual}
       <div>
         <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>

@@ -3,13 +3,13 @@
 import { useState, type ReactNode } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
+import { AgePicker } from "@/components/AgePicker";
 import { AskBar } from "@/components/AskBar";
 import { LifeCloud } from "@/components/LifeCloud";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProfilePanel } from "@/components/ProfilePanel";
 import { ShareButton } from "@/components/ShareButton";
-import { TimelineChart } from "@/components/TimelineChart";
 import { useFinLife } from "@/lib/useFinLife";
 
 export function FinLifeApp() {
@@ -24,8 +24,8 @@ export function FinLifeApp() {
   const defaultAge = app.landingAge ?? newestEventAge;
   const age = scrubAge ?? defaultAge;
 
-  function travelTo(next: number | null) {
-    if (next === null || next === scrubAge) return;
+  function travelTo(next: number) {
+    if (next === scrubAge) return;
     setScrub({ age: next, eventsKey });
   }
 
@@ -83,27 +83,18 @@ export function FinLifeApp() {
           </Rise>
 
           <Rise order={2}>
-            <div className="relative">
-              {app.chartProfile && app.chartCompare ? (
-                <TimelineChart
-                  profile={app.chartProfile}
-                  events={app.events}
-                  compare={app.chartCompare}
-                  focusAge={age}
-                  onFocusAge={travelTo}
-                  showSummary={false}
-                  plotHeight="h-32 sm:h-40"
-                  scrubber
-                />
-              ) : (
-                <Placeholder text="Your timeline appears here." />
-              )}
-              {app.chartPending && hasResults && (
-                <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
-                  Updating...
-                </span>
-              )}
-            </div>
+            {app.chartProfile ? (
+              <AgePicker
+                startAge={app.chartProfile.age}
+                endAge={app.chartProfile.retire_age}
+                age={Math.min(Math.max(age, app.chartProfile.age), app.chartProfile.retire_age)}
+                events={app.events}
+                onChange={travelTo}
+                pending={app.chartPending && hasResults}
+              />
+            ) : (
+              <Placeholder text="Your timeline appears here." />
+            )}
           </Rise>
 
           <Rise order={3}>
