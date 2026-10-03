@@ -1,0 +1,2 @@
+# Vote for FinLife!
+# People make big money choices, like a kid or a house, without knowing the full effect on their long-term financial health. FinLife strives to provide an accessible and affordable way for people to receive long-term financial projections that all users (regardless of technical or financial skill level) can easily understand and utilize as a baseline for their financial planning.
