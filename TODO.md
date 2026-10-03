@@ -82,7 +82,7 @@ Non-secret only. Never paste AWS keys here. Fill these in as they become known.
 - [x] B0 Bedrock works from a laptop. Due Fri 12:00 PM. (Fri 8:12 PM) Needs the hackathon account login. Done when: the CLI converse call answers with --profile finlife; model IDs are in backend/.env and Shared values.
 - [x] B1 Coach on Bedrock. Due Fri 4:00 PM. (Fri 8:14 PM; demo replies re-run once K1 and K2 are on main) Needs B0. Done when: test_numbers.py and the aws coach test pass; replies to the 3 demo questions are reported.
 - [x] B2 Guardrail and audit log. Due Fri 8:00 PM. (Fri 8:40 PM; DynamoStore tested against fake tables, live once K4 creates them) Needs the finlife-advice guardrail created in the console. Done when: the bait reply is blocked; Decimal round-trip tests pass; each /chat writes one audit record; the guardrail ID and version are in Shared values.
-- [ ] B3 Share and brief. Due Sat 12:00 AM. Needs B1. Done when: mocked-model tests (valid JSON, invalid JSON, a made-up number, 2 questions) all produce a valid Brief.
+- [x] B3 Share and brief. Due Sat 12:00 AM. (Fri 9:10 PM; Haiku with a JSON-schema structured output, one call per share) Needs B1. Done when: mocked-model tests (valid JSON, invalid JSON, a made-up number, 2 questions) all produce a valid Brief.
 - [ ] B4 Refusal tests and offline fixtures. Due Sat 4:00 AM. Needs B1 to B3 and K3. Done when: the 5 refusal tests pass; offline JSON is saved to backend/fixtures/offline and frontend/public/offline.
 - [ ] B5 Pay stub upload (stretch). Only if the Sat 1:00 AM gate passes.
 
