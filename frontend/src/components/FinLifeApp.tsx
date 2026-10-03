@@ -3,19 +3,17 @@
 import { useState } from "react";
 import { RotateCw, X } from "lucide-react";
 import { AskBar } from "@/components/AskBar";
-import { InsightsPanel } from "@/components/InsightsPanel";
 import { LifeInIcons } from "@/components/LifeInIcons";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
 import { ProfilePanel } from "@/components/ProfilePanel";
+import { ShareButton } from "@/components/ShareButton";
 import { TimelineChart } from "@/components/TimelineChart";
-import { useEventImpacts } from "@/lib/useEventImpacts";
 import { useFinLife } from "@/lib/useFinLife";
 
 export function FinLifeApp() {
   const app = useFinLife();
-  const impacts = useEventImpacts(app.chartProfile, app.events);
-  // The age under the pointer on the chart or an Insights card. Life in Icons, the chart and the cards all follow it.
+  // The age under the pointer on the chart. The dashboard numbers and icons follow it.
   const [focusAge, setFocusAge] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const ready = app.profile !== null;
@@ -24,98 +22,83 @@ export function FinLifeApp() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
+      <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
         <h1 className="text-xl font-bold text-primary">FinLife</h1>
         <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
       </header>
 
       {app.error && (
-        <div role="alert" className="mx-4 mt-3 flex items-center gap-3 rounded-lg border border-alert/30 bg-alert/10 px-4 py-2 text-sm sm:mx-6">
-          <span className="flex-1">{app.error}</span>
-          {!ready && (
-            <button type="button" onClick={app.loadProfiles} className="flex items-center gap-1 font-medium text-primary">
-              <RotateCw size={14} aria-hidden="true" />
-              Retry
+        <div className="mx-auto mt-3 w-full max-w-5xl px-4 sm:px-6">
+          <div role="alert" className="flex items-center gap-3 rounded-lg border border-alert/30 bg-alert/10 px-4 py-2 text-sm">
+            <span className="flex-1">{app.error}</span>
+            {!ready && (
+              <button type="button" onClick={app.loadProfiles} className="flex items-center gap-1 font-medium text-primary">
+                <RotateCw size={14} aria-hidden="true" />
+                Retry
+              </button>
+            )}
+            <button type="button" onClick={app.dismissError} aria-label="Dismiss" className="text-muted hover:text-ink">
+              <X size={16} aria-hidden="true" />
             </button>
-          )}
-          <button type="button" onClick={app.dismissError} aria-label="Dismiss" className="text-muted hover:text-ink">
-            <X size={16} aria-hidden="true" />
-          </button>
+          </div>
         </div>
       )}
 
-      {/* Main column | Insights. On narrow screens Insights follows the main column. */}
-      <main className="grid flex-1 gap-4 p-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start xl:grid-cols-[minmax(0,1fr)_400px]">
-        <div className="space-y-4">
-          {app.profile ? (
-            <ProfileBar
-              profiles={app.profiles}
-              personaId={app.personaId}
-              profile={app.profile}
-              hasErrors={app.fieldErrors.length > 0}
-              onPersona={app.choosePersona}
-              onEdit={() => setDrawerOpen(true)}
-            />
-          ) : (
-            <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
-          )}
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:px-6">
+        {app.profile ? (
+          <ProfileBar
+            profiles={app.profiles}
+            personaId={app.personaId}
+            profile={app.profile}
+            hasErrors={app.fieldErrors.length > 0}
+            onPersona={app.choosePersona}
+            onEdit={() => setDrawerOpen(true)}
+          />
+        ) : (
+          <Placeholder text={app.profilesLoading ? "Loading profiles..." : "No profile loaded."} />
+        )}
 
-          {app.chartProfile && app.chartCompare && (
-            <LifeInIcons
+        {app.chartProfile && app.chartCompare && (
+          <LifeInIcons
+            profile={app.chartProfile}
+            events={app.events}
+            compare={app.chartCompare}
+            focusAge={focusAge}
+            freshIds={app.freshIds}
+          />
+        )}
+
+        <div className="relative">
+          {app.chartProfile && app.chartCompare ? (
+            <TimelineChart
               profile={app.chartProfile}
               events={app.events}
               compare={app.chartCompare}
               focusAge={focusAge}
-              freshIds={app.freshIds}
+              onFocusAge={setFocusAge}
+              showSummary={false}
+              plotHeight="h-64 sm:h-80"
             />
+          ) : (
+            <Placeholder text={ready ? "Running your numbers..." : "Your timeline appears here."} tall />
           )}
-
-          <div className="relative">
-            {app.chartProfile && app.chartCompare ? (
-              <TimelineChart
-                profile={app.chartProfile}
-                events={app.events}
-                compare={app.chartCompare}
-                focusAge={focusAge}
-                onFocusAge={setFocusAge}
-                showSummary={false}
-                plotHeight="h-64 sm:h-72"
-              />
-            ) : (
-              <Placeholder text={ready ? "Running your numbers..." : "Your timeline appears here."} tall />
-            )}
-            {app.chartPending && hasResults && (
-              <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
-                Updating...
-              </span>
-            )}
-          </div>
-
-          <AskBar
-            pending={app.chatPending}
-            disabled={!ready}
-            suggestions={app.suggestions}
-            events={app.events}
-            onSend={app.sendMessage}
-            onRemoveEvent={app.removeEvent}
-          />
+          {app.chartPending && hasResults && (
+            <span className="absolute bottom-3 right-4 animate-pulse rounded-full bg-canvas px-2 py-0.5 text-xs text-muted">
+              Updating...
+            </span>
+          )}
         </div>
 
-        <div className="lg:sticky lg:top-4">
-          <InsightsPanel
-            profile={app.chartProfile}
-            events={app.events}
-            compare={app.chartCompare}
-            analysis={app.analysis}
-            impacts={impacts}
-            messages={app.messages}
-            chatPending={app.chatPending}
-            focusAge={focusAge}
-            onFocusAge={setFocusAge}
-            shareRequest={app.shareRequest}
-            shareDisabled={busy || app.messages.length === 0}
-          />
-        </div>
+        <AskBar
+          pending={app.chatPending}
+          disabled={!ready}
+          suggestions={app.suggestions}
+          events={app.events}
+          noChange={app.noChange}
+          onSend={app.sendMessage}
+          onRemoveEvent={app.removeEvent}
+          footer={app.shareRequest && <ShareButton request={app.shareRequest} disabled={busy || app.messages.length === 0} />}
+        />
       </main>
 
       <footer className="px-4 pb-4 text-center text-xs text-muted sm:px-6">For education only. Not financial advice.</footer>
