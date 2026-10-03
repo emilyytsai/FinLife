@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import {
+  ApartmentAsset,
   ChildAsset,
+  CondoAsset,
   CreditCardAsset,
   DebtAsset,
   InvestmentsAsset,
@@ -12,11 +14,14 @@ import {
   NetworkSphereAsset,
   PersonAsset,
   SedanAsset,
+  SpouseAsset,
   SuvAsset,
 } from "@/components/cloud/assets";
+import { RevealGate, RevealPace, useRevealOpen } from "@/components/cloud/RevealGate";
 import { money, pct } from "@/lib/format";
 import { tipContent, tipReveal } from "@/lib/tipReveal";
 import { lifeAt, type Detail, type LifeFigure } from "@/lib/lifeState";
+import type { MockYear } from "@/lib/mock/household";
 import type { Compare, LifeEvent, Profile } from "@/lib/types";
 
 interface LifeCloudProps {
@@ -25,6 +30,8 @@ interface LifeCloudProps {
   compare: Compare;
   /** The age to show. Driven by the timeline scrubber. */
   age: number;
+  /** Mock mode only (demo branch): the household numbers the engine doesn't have. */
+  mockYears?: Record<number, MockYear> | null;
 }
 
 interface Section {
@@ -46,6 +53,29 @@ const CROWDED_AT = 3;
 /** The fallback never shrinks the models below this. */
 const MIN_SCALE = 0.55;
 
+/**
+ * Trade-off pacing: when things leave and arrive together (e.g. the condo and SUV go, the apartment and daughter come),
+ * the leavers fade out one by one and the row closes up; then the arrivals open space and scan in one by one, slowly,
+ * so the user can follow what was traded for what. Seconds.
+ */
+const EXIT_FADE = 1;
+const EXIT_STAGGER = 0.5;
+const COLLAPSE = 0.7;
+const ENTER_STAGGER = 0.9;
+const ENTER_OPEN = 0.6;
+const ENTER_SCAN = 2.2;
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+/** What changed in the scene on the last render: keys that left and keys that arrived, in row order. */
+interface SceneChange {
+  removed: string[];
+  added: string[];
+}
+const SceneChangeContext = createContext<SceneChange>({ removed: [], added: [] });
+
+/** How long the leavers take, so the arrivals start once the row has closed up. */
+const exitPhase = (removed: number) => (removed > 0 ? (removed - 1) * EXIT_STAGGER + EXIT_FADE + COLLAPSE * 0.6 : 0);
+
 /** Pixels the ground grid shifts per year of age, so scrubbing reads as travel. */
 const GROUND_STEP = 24;
 
@@ -53,7 +83,7 @@ const GROUND_STEP = 24;
  * "Life Time Travel" as a LiDAR scan: the people and things in the user's life as point clouds on a dotted ground,
  * with the money in a data row below. Everything comes from the engine row, the profile, and the events at that age.
  */
-export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeCloudProps) {
+export function LifeCloud({ profile, events, compare, age: requestedAge, mockYears = null }: LifeCloudProps) {
   const rows = events.length > 0 ? compare.scenario.years : compare.baseline.years;
   const first = rows[0]?.age ?? profile.age;
   const last = rows[rows.length - 1]?.age ?? profile.retire_age;
@@ -74,6 +104,8 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
   // Hover cards for the money tiles. Every value is the engine's (this year's row and the plan's summary) or the profile's.
   const summary = (events.length > 0 ? compare.scenario : compare.baseline).summary;
   const noNumbers: Section[] = [{ title: "No numbers", details: [], note: "The plan has no numbers for this year." }];
+  // Mock mode only: the household numbers from the browser-side projection (spouse, home, portfolio, child).
+  const mockYear = !outside && mockYears ? mockYears[age] : undefined;
   const cashSections: Section[] =
     outside || !row
       ? noNumbers
@@ -96,14 +128,81 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
     : [
         ...section(debt),
         ...(home?.name === "house" && row ? [{ title: "Home", details: [{ label: "Home equity", value: money(row.home_equity) }] }] : []),
+        ...(mockYear
+          ? [{ title: "Mortgage (not counted above)", details: [{ label: "Balance", value: money(mockYear.mortgageBalance) }] }]
+          : []),
       ];
-  const investmentSections: Section[] = [
-    {
-      title: "Investments",
-      details: [],
-      note: "Not in the plan yet. The engine doesn't track a brokerage portfolio, so there's no value to show.",
-    },
-  ];
+  const investmentSections: Section[] = mockYear
+    ? [
+        {
+          title: "Brokerage portfolio",
+          details: [
+            { label: "Balance", value: money(mockYear.investments) },
+            { label: "Adding", value: `${money(mockYear.investmentContribution)}/mo` },
+            { label: "Expected return", value: `${pct(profile.assumptions.investment_return)}/yr` },
+          ],
+        },
+      ]
+    : [
+        {
+          title: "Investments",
+          details: [],
+          note: "Not in the plan yet. The engine doesn't track a brokerage portfolio, so there's no value to show.",
+        },
+      ];
+  const youSections: Section[] = mockYear
+    ? [
+        {
+          title: "Maya",
+          details: [
+            { label: "Age", value: String(age) },
+            { label: "Retire at", value: String(profile.retire_age) },
+            { label: "Income this year", value: money(mockYear.herIncome) },
+            { label: "Her expenses", value: `${money(mockYear.herExpenses)}/yr` },
+          ],
+        },
+        ...(savings ? [{ title: "Household 401(k)", details: savings.details }] : []),
+      ]
+    : [...section(you), ...section(work), ...section(savings), ...section(debt)];
+  const spouseSections: Section[] = mockYear
+    ? [
+        {
+          title: "Husband",
+          details: [
+            { label: "Age", value: String(mockYear.spouseAge) },
+            { label: "Income this year", value: money(mockYear.spouseIncome) },
+            { label: "His expenses", value: `${money(mockYear.spouseExpenses)}/yr` },
+            { label: "Retires", value: `With Maya, at ${mockYear.spouseAge + profile.retire_age - age}` },
+          ],
+        },
+      ]
+    : [];
+  const homeSections: Section[] = mockYear
+    ? [
+        {
+          title: mockYear.home === "condo" ? "Condo" : "Apartment",
+          details: [
+            { label: "Market value", value: money(mockYear.homeValue) },
+            { label: "Mortgage left", value: money(mockYear.mortgageBalance) },
+            { label: "Equity", value: money(mockYear.homeValue - mockYear.mortgageBalance) },
+            { label: "HOA", value: `${money(mockYear.monthlyHoa)}/mo` },
+          ],
+        },
+      ]
+    : [];
+  const kidSections = (kid: LifeFigure): Section[] =>
+    mockYear && mockYear.childAge !== null
+      ? [
+          {
+            title: "Daughter",
+            details: [
+              { label: "Age", value: String(mockYear.childAge) },
+              { label: "Her expenses", value: mockYear.childExpenses > 0 ? `${money(mockYear.childExpenses)}/yr` : "None (18+)" },
+              { label: "Costs run to", value: `Maya's age ${age - mockYear.childAge + 17}` },
+            ],
+          },
+        ]
+      : section(kid);
   const retirementSections: Section[] =
     outside || !savings
       ? noNumbers
@@ -118,8 +217,27 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           },
         ];
   const ownsHome = home?.name === "house";
-  const modelCount = 1 + kids.length + (ownsHome ? 1 : 0) + cars.length;
+  const modelCount = 1 + kids.length + (ownsHome ? 1 : 0) + cars.length + (mockYear ? 2 : 0);
   const crowded = modelCount >= CROWDED_AT;
+
+  // The scene's keys in row order (mirrors the list below), and what changed since the last set.
+  const sceneKeys = [
+    "you",
+    ...kids.map((kid) => kid.key),
+    ...(mockYear ? ["spouse", mockYear.home] : []),
+    ...(ownsHome && home ? [home.key] : []),
+    ...cars.map((car) => car.key),
+  ];
+  const sceneKey = sceneKeys.join("|");
+  const [change, setChange] = useState<SceneChange & { key: string }>({ key: sceneKey, removed: [], added: [] });
+  if (change.key !== sceneKey) {
+    const before = change.key.split("|");
+    setChange({
+      key: sceneKey,
+      removed: before.filter((key) => !sceneKeys.includes(key)),
+      added: sceneKeys.filter((key) => !before.includes(key)),
+    });
+  }
 
   // Fallback scaling: when the row of models is wider than its safe zone, shrink the whole group to fit.
   // Measured with unscaled sizes (transforms don't change layout), so it never feeds back on itself.
@@ -176,36 +294,54 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           <div ref={zoneRef} className={`flex justify-center transition-[padding] duration-500 ${crowded ? "lg:pr-52" : ""}`}>
             <ul
               ref={rowRef}
-              className="relative flex min-h-56 w-full flex-wrap items-end justify-center gap-x-3 gap-y-4 pb-6 pt-4 transition-transform duration-500 sm:min-h-64 sm:gap-x-10 sm:px-2 lg:w-max lg:flex-nowrap"
+              className="relative flex min-h-56 w-full flex-wrap items-end justify-center gap-y-4 pb-6 pt-4 transition-transform duration-500 sm:min-h-64 sm:px-2 lg:w-max lg:flex-nowrap"
               style={{ transform: scale < 1 ? `scale(${scale})` : undefined, transformOrigin: "bottom center" }}
               aria-label="People and things"
             >
-              <AnimatePresence initial={false} mode="popLayout">
-                <Item key="you" label="You" sections={[...section(you), ...section(work), ...section(savings), ...section(debt)]}>
-                  <PersonAsset className="h-40 w-16 sm:h-52 sm:w-24" />
-                </Item>
-                {kids.map((kid, i) => (
-                  <Item key={kid.key} label="Child" sections={section(kid)}>
-                    <ChildAsset variant={i % 2 === 0 ? 1 : 2} phase={2 + i} className="h-24 w-12 sm:h-32 sm:w-16" />
+              <SceneChangeContext.Provider value={change}>
+                <AnimatePresence initial={false} custom={change.removed}>
+                  <Item key="you" id="you" label={mockYear ? "Maya" : "You"} sections={youSections}>
+                    <PersonAsset className="h-40 w-16 sm:h-52 sm:w-24" />
                   </Item>
-                ))}
-                {ownsHome && home && (
-                  <Item key={home.key} label="Home" sections={section(home)}>
-                    <HouseAsset className="h-36 w-40 sm:h-52 sm:w-64" />
-                  </Item>
-                )}
-                {cars.map((car, i) =>
-                  isSuv(car.title) ? (
-                    <Item key={car.key} label={car.title} sections={section(car)}>
-                      <SuvAsset phase={1 + i} className="h-20 w-32 sm:h-32 sm:w-52" />
+                  {kids.map((kid, i) => (
+                    <Item key={kid.key} id={kid.key} label={mockYear ? "Daughter" : "Child"} sections={kidSections(kid)}>
+                      <ChildAsset variant={i % 2 === 0 ? 1 : 2} phase={2 + i} className="h-24 w-12 sm:h-32 sm:w-16" />
                     </Item>
-                  ) : (
-                    <Item key={car.key} label={car.title} sections={section(car)}>
-                      <SedanAsset phase={1 + i} className="h-20 w-32 sm:h-28 sm:w-52" />
+                  ))}
+                  {/* Mock mode only: the husband, then the home (the condo, or the smaller apartment in the kid scenario). */}
+                  {mockYear && (
+                    <Item key="spouse" id="spouse" label="Husband" sections={spouseSections}>
+                      <SpouseAsset className="h-40 w-16 sm:h-52 sm:w-24" />
                     </Item>
-                  ),
-                )}
-              </AnimatePresence>
+                  )}
+                  {mockYear?.home === "condo" && (
+                    <Item key="condo" id="condo" label="Condo" sections={homeSections}>
+                      <CondoAsset className="h-40 w-28 sm:h-56 sm:w-40" />
+                    </Item>
+                  )}
+                  {mockYear?.home === "apartment" && (
+                    <Item key="apartment" id="apartment" label="Apartment" sections={homeSections}>
+                      <ApartmentAsset className="h-28 w-28 sm:h-36 sm:w-36" />
+                    </Item>
+                  )}
+                  {ownsHome && home && (
+                    <Item key={home.key} id={home.key} label="Home" sections={section(home)}>
+                      <HouseAsset className="h-36 w-40 sm:h-52 sm:w-64" />
+                    </Item>
+                  )}
+                  {cars.map((car, i) =>
+                    isSuv(car.title) ? (
+                      <Item key={car.key} id={car.key} label={car.title} sections={section(car)}>
+                        <SuvAsset phase={1 + i} className="h-20 w-32 sm:h-32 sm:w-52" />
+                      </Item>
+                    ) : (
+                      <Item key={car.key} id={car.key} label={car.title} sections={section(car)}>
+                        <SedanAsset phase={1 + i} className="h-20 w-32 sm:h-28 sm:w-52" />
+                      </Item>
+                    ),
+                  )}
+                </AnimatePresence>
+              </SceneChangeContext.Provider>
             </ul>
           </div>
         </div>
@@ -218,7 +354,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
             {/* No investments value in the engine yet (schema has no field for it), so this shows a dash, never a made-up number. */}
             <Metric
               label="Investments"
-              value={null}
+              value={mockYear ? mockYear.investments : null}
               sections={investmentSections}
               visual={<InvestmentsAsset className={METRIC_VISUAL} />}
             />
@@ -347,31 +483,71 @@ function TipCard({ side, sections }: { side: Side; sections: Section[] }) {
 }
 
 /** One point-cloud model in the scene. Hover, focus, or tap shows its values beside it. */
-function Item({ label, sections, children }: { label: string; sections: Section[]; children: ReactNode }) {
+function Item({ id, label, sections, children }: { id: string; label: string; sections: Section[]; children: ReactNode }) {
   const tip = useSideTip();
+  const change = useContext(SceneChangeContext);
+  // Arrivals wait for the leavers, then come in one by one: the slot opens, then the model scans in slowly.
+  // Frozen at mount, so later renders don't move it.
+  const [enterDelay] = useState(() => {
+    const index = change.added.indexOf(id);
+    return index < 0 ? 0 : exitPhase(change.removed.length) + index * ENTER_STAGGER;
+  });
+  const [pace] = useState(() => (enterDelay > 0 ? ENTER_SCAN : 1.3));
+  const [scanning, setScanning] = useState(enterDelay === 0);
+  useEffect(() => {
+    if (scanning) return;
+    const timer = setTimeout(() => setScanning(true), (enterDelay + ENTER_OPEN * 0.7) * 1000);
+    return () => clearTimeout(timer);
+  }, [scanning, enterDelay]);
+  const pageOpen = useRevealOpen();
+
   return (
+    // The li animates its width (spacing included, on the inner div), so neighbors slide over smoothly as a slot
+    // opens or closes. Leavers fade and blur out in order (AnimatePresence's custom = the keys that left), then collapse.
     <motion.li
-      layout
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.3 } }}
-      transition={{ duration: 0.4 }}
-      className="relative"
-      onMouseEnter={(event) => tip.show(event.currentTarget)}
-      onMouseLeave={tip.hide}
+      initial={{ opacity: 0, width: 0 }}
+      animate={{
+        opacity: 1,
+        width: "auto",
+        transition: { width: { duration: ENTER_OPEN, delay: enterDelay, ease: EASE }, opacity: { duration: 0.3, delay: enterDelay } },
+      }}
+      exit="leave"
+      variants={{
+        leave: (removed: string[]) => {
+          const delay = Math.max(0, removed.indexOf(id)) * EXIT_STAGGER;
+          return {
+            opacity: 0,
+            filter: "blur(8px)",
+            y: 14,
+            width: 0,
+            transition: {
+              opacity: { duration: EXIT_FADE, delay, ease: "easeIn" },
+              filter: { duration: EXIT_FADE, delay, ease: "easeIn" },
+              y: { duration: EXIT_FADE, delay, ease: "easeIn" },
+              width: { duration: COLLAPSE, delay: delay + EXIT_FADE, ease: EASE },
+            },
+          };
+        },
+      }}
     >
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={tip.open}
-        onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget))}
-        onFocus={(event) => tip.show(event.currentTarget)}
-        onBlur={tip.hide}
-        className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
-      >
-        {children}
-      </button>
-      <AnimatePresence>{tip.open && sections.length > 0 && <TipCard side={tip.side} sections={sections} />}</AnimatePresence>
+      <div className="px-1.5 sm:px-5">
+        <div className="relative" onMouseEnter={(event) => tip.show(event.currentTarget)} onMouseLeave={tip.hide}>
+          <button
+            type="button"
+            aria-label={label}
+            aria-expanded={tip.open}
+            onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget))}
+            onFocus={(event) => tip.show(event.currentTarget)}
+            onBlur={tip.hide}
+            className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
+          >
+            <RevealGate.Provider value={pageOpen && scanning}>
+              <RevealPace.Provider value={pace}>{children}</RevealPace.Provider>
+            </RevealGate.Provider>
+          </button>
+          <AnimatePresence>{tip.open && sections.length > 0 && <TipCard side={tip.side} sections={sections} />}</AnimatePresence>
+        </div>
+      </div>
     </motion.li>
   );
 }
