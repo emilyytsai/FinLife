@@ -86,8 +86,8 @@ export function FinLifeApp() {
             {app.chartProfile ? (
               <AgePicker
                 startAge={app.chartProfile.age}
-                endAge={app.chartProfile.retire_age}
-                age={Math.min(Math.max(age, app.chartProfile.age), app.chartProfile.retire_age)}
+                endAge={app.chartCompare?.baseline.years.at(-1)?.age ?? app.chartProfile.retire_age}
+                age={age}
                 events={app.events}
                 onChange={travelTo}
                 pending={app.chartPending && hasResults}

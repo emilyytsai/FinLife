@@ -127,7 +127,7 @@ class YearRow(BaseModel):
 
 class Flag(BaseModel):
     age: int
-    code: Literal["low_emergency_fund", "negative_cash"]
+    code: Literal["low_emergency_fund", "negative_cash", "savings_depleted"]
     message: str
 
 

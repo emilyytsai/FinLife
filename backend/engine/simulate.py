@@ -5,6 +5,10 @@ from decimal import ROUND_HALF_UP, Decimal
 from .labels import money
 
 
+PLAN_TO_AGE = 95
+"""Every simulation runs to this age. retire_age is when work stops; the years after it still matter."""
+
+
 def _round_money(x: float) -> int:
     """Round a float to a whole dollar, half up. Used only when building rows and the summary."""
     return int(Decimal(str(x)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
@@ -123,8 +127,9 @@ def simulate(profile: dict, events: list[dict]) -> dict:
     flags: list[dict] = []
     seen_flag_codes: set[str] = set()
 
-    for a in range(start_age, retire_age + 1):
+    for a in range(start_age, max(retire_age, PLAN_TO_AGE) + 1):
         n = a - start_age
+        retired = a >= retire_age
 
         # --- Step 1: apply events at the start of age a, in list order ---
         for ev in events_by_age.get(a, []):
@@ -155,8 +160,9 @@ def simulate(profile: dict, events: list[dict]) -> dict:
                 job_loss_months[a] = min(job_loss_months.get(a, 0) + ev["months"], 12)
 
         # --- Step 2: compute this year's flows (balances are post-event) ---
+        # From retire_age on there is no salary, so no 401(k) contributions and no take-home pay.
         months_lost = job_loss_months.get(a, 0)
-        income_a = income_base * (1 + salary_growth) ** n * (1 - months_lost / 12)
+        income_a = 0.0 if retired else income_base * (1 + salary_growth) ** n * (1 - months_lost / 12)
         employee_a = income_a * retirement_pct
         employer_a = income_a * min(retirement_pct, employer_match_pct)
         take_home_a = (income_a - employee_a) * (1 - tax_rate)
@@ -208,9 +214,14 @@ def simulate(profile: dict, events: list[dict]) -> dict:
         )
 
         # --- Flags: evaluated on the recorded cash and this year's monthly outflow ---
+        # The two cash flags cover the working years through retire_age; savings_depleted covers the years after.
         row_cash = years[-1]["cash"]  # the whole-dollar cash shown in this row
         monthly_outflow_a = (expenses_a + debt_payments_a + mortgage_payment_a) / 12
-        if cash < 0 and "negative_cash" not in seen_flag_codes:
+        if a > retire_age:
+            if cash < 0 and "savings_depleted" not in seen_flag_codes:
+                flags.append({"age": a, "code": "savings_depleted", "message": "Cash and 401(k) are used up"})
+                seen_flag_codes.add("savings_depleted")
+        elif cash < 0 and "negative_cash" not in seen_flag_codes:
             flags.append(
                 {"age": a, "code": "negative_cash", "message": f"Cash falls to {money(row_cash)}"}
             )
@@ -228,8 +239,18 @@ def simulate(profile: dict, events: list[dict]) -> dict:
 
         # --- Step 4: apply flows to get balances for age a + 1 ---
         yield_a = cash * cash_yield if cash > 0 else 0.0
-        cash = cash + yield_a + take_home_a - expenses_a - debt_payments_a - mortgage_payment_a
-        retirement = retirement * (1 + investment_return) + employee_a + employer_a
+        if retired:
+            # Spending is withdrawn from the 401(k), grossed up for tax, after this year's growth.
+            # Whatever the 401(k) can't cover comes out of cash.
+            spending_a = expenses_a + debt_payments_a + mortgage_payment_a
+            grown = retirement * (1 + investment_return)
+            gross_needed = spending_a / (1 - tax_rate) if tax_rate < 1 else spending_a
+            withdrawal_a = min(gross_needed, max(grown, 0.0))
+            cash = cash + yield_a + withdrawal_a * (1 - tax_rate) - spending_a
+            retirement = grown - withdrawal_a
+        else:
+            cash = cash + yield_a + take_home_a - expenses_a - debt_payments_a - mortgage_payment_a
+            retirement = retirement * (1 + investment_return) + employee_a + employer_a
         for d in debts:
             d["balance"] = d["next_balance"]
         mortgage_balance = mortgage_next_balance
@@ -238,10 +259,13 @@ def simulate(profile: dict, events: list[dict]) -> dict:
 
     flags.sort(key=lambda f: f["age"])
 
-    retire_row = years[-1]
+    # The summary describes the working years: the retire_age row, and the lowest cash up to it.
+    retire_row = next(row for row in years if row["age"] == retire_age)
     min_cash = years[0]["cash"]
     min_cash_age = years[0]["age"]
     for row in years:
+        if row["age"] > retire_age:
+            break
         if row["cash"] < min_cash:
             min_cash = row["cash"]
             min_cash_age = row["age"]

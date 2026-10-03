@@ -109,6 +109,7 @@ Done when, for each task: npm run lint and npm run build pass, and it works on s
 - Suggested house price can go above buy_house's 5,000,000 max for incomes above about $833k (the Phase 0 stub caps it). Kevin proposes a fix in K3; a schema change needs team agreement.
 - money() must round half up in the engine and the frontend alike, so both give identical strings.
 - Owners for the demo video, the code ZIP, and the submission form.
+- Simulation past retirement (made Fri Oct 2 on `frontend`, cleared by Emi; Kevin and Brian please review): rows now run to PLAN_TO_AGE = 95. From retire_age on there's no salary or 401(k) contributions; spending is drawn from the 401(k), grossed up for tax, then from cash. New flag savings_depleted. The summary, min_cash, and the two cash flags still cover only the years up to retire_age. schema.md, engine, stub, models, and tests updated. Open: there is no retirement income (Social Security, pension), so every persona's savings run out in their mid-70s to 80.
 
 ## Blocked
 Add a line: who, what's blocking, and what's needed.

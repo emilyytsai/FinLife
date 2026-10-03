@@ -47,6 +47,9 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
   const last = rows[rows.length - 1]?.age ?? profile.retire_age;
   const age = Math.min(Math.max(requestedAge, first), last);
   const row = rows.find((r) => r.age === age);
+  // The engine has numbers from today to age 95. Outside that, the scene dims and the numbers show a dash.
+  const outside = requestedAge < first ? "before" : requestedAge > last ? "after" : null;
+  const shown = (value: number) => (outside ? null : value);
 
   const groups = Object.fromEntries(lifeAt(profile, events, age, row).map((group) => [group.key, group]));
   const [you, ...kids] = groups.family?.figures ?? [];
@@ -66,12 +69,17 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
         {row && (
           <dl className="flex justify-center text-center">
-            <Figure label="Net worth" value={row.net_worth} format={money} large />
+            <Figure label="Net worth" value={shown(row.net_worth)} format={money} large />
           </dl>
+        )}
+        {outside && (
+          <p className="mt-1 text-center text-xs text-neutral-500">
+            {outside === "before" ? "Before today: no numbers yet." : `The plan runs to age ${last}.`}
+          </p>
         )}
 
         {/* The scene: point clouds standing on a scanned ground plane. */}
-        <div className="relative mt-4">
+        <div className={`relative mt-4 transition-opacity duration-500 ${outside ? "opacity-30" : ""}`}>
           <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
             <div
               className="absolute inset-x-[-20%] bottom-0 h-32 origin-bottom transition-[background-position] duration-700 ease-out [mask-image:linear-gradient(to_top,black,transparent)] [transform:perspective(420px)_rotateX(62deg)]"
@@ -118,9 +126,9 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
         {/* The money, floating over the right of the scene on wide screens (below it on narrow ones). No borders. */}
         {row && (
           <dl className="mt-2 grid grid-cols-1 gap-1 min-[420px]:grid-cols-3 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-3">
-            <Metric label="Cash" value={row.cash} visual={<DebitCardAsset className="size-16 sm:size-20" />} />
-            <Metric label="401(k)" value={row.retirement} visual={<NetworkSphereAsset className="size-16 sm:size-20" />} />
-            <Metric label="Debt" value={row.debt} visual={<CreditCardAsset className="size-16 sm:size-20" />} />
+            <Metric label="Cash" value={shown(row.cash)} visual={<DebitCardAsset className="size-16 sm:size-20" />} />
+            <Metric label="401(k)" value={shown(row.retirement)} visual={<NetworkSphereAsset className="size-16 sm:size-20" />} />
+            <Metric label="Debt" value={shown(row.debt)} visual={<CreditCardAsset className="size-16 sm:size-20" />} />
           </dl>
         )}
       </section>
@@ -128,25 +136,35 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
   );
 }
 
-function Figure({ label, value, format, large = false }: { label: string; value: number; format: (v: number) => string; large?: boolean }) {
+function Figure({
+  label,
+  value,
+  format,
+  large = false,
+}: {
+  label: string;
+  value: number | null;
+  format: (v: number) => string;
+  large?: boolean;
+}) {
   return (
     <div>
       <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
       <dd className={`font-light tabular-nums tracking-tight text-white ${large ? "text-5xl" : "text-2xl"}`} aria-live="polite">
-        <AnimatedNumber value={value} format={format} />
+        {value === null ? "—" : <AnimatedNumber value={value} format={format} />}
       </dd>
     </div>
   );
 }
 
-function Metric({ label, value, visual }: { label: string; value: number; visual: ReactNode }) {
+function Metric({ label, value, visual }: { label: string; value: number | null; visual: ReactNode }) {
   return (
     <div className="flex items-center gap-3">
       {visual}
       <div>
         <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
         <dd className="text-2xl font-light tabular-nums tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.35)]">
-          <AnimatedNumber value={value} format={money} />
+          {value === null ? "—" : <AnimatedNumber value={value} format={money} />}
         </dd>
       </div>
     </div>
