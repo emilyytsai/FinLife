@@ -84,6 +84,8 @@ Resources:
       # Importing anthropic makes a cold start take about 5 s. Two instances stay initialized so the
       # frontend's parallel /analyze and /compare calls never wait on one during the demo.
       AutoPublishAlias: live
+      # Publish a new version on any change, not only code, so new environment variables reach the alias.
+      AutoPublishAliasAllProperties: true
       ProvisionedConcurrencyConfig:
         ProvisionedConcurrentExecutions: 2
       Environment:
