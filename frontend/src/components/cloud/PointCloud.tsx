@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Cloud } from "@/lib/pointcloud/models";
 import { onFrame } from "@/lib/pointcloud/ticker";
+import { useRevealOpen } from "@/components/cloud/RevealGate";
 
 export type CloudMotion = "spin" | "sway";
 
@@ -22,6 +23,10 @@ interface PointCloudProps {
   dotSize?: number;
   /** Scan the model in from the bottom up when it first appears. */
   reveal?: boolean;
+  /** Sway half-range in radians (sway motion). Defaults to SWAY. */
+  sway?: number;
+  /** The first this-many points use the accent palette (--fin-dot-*), e.g. the "Fin" of the title. */
+  accentCount?: number;
   className?: string;
 }
 
@@ -30,10 +35,10 @@ const REVEAL_SECONDS = 1.3;
 /** Sway half-range in radians, and how far models bob up and down (model units). */
 const SWAY = 0.5;
 const BOB = 0.03;
-/** Dot colors from far to near, read from the theme (globals.css: --dot-far, --dot-mid, --dot-near). */
-function themeShades(): string[] {
+/** Dot colors from far to near, read from the theme (globals.css: --dot-far/mid/near, or --fin-dot-far/mid/near). */
+function themeShades(prefix = "--dot"): string[] {
   const style = getComputedStyle(document.documentElement);
-  return ["--dot-far", "--dot-mid", "--dot-near"].map((name) => style.getPropertyValue(name).trim() || "#ffffff");
+  return ["far", "mid", "near"].map((depth) => style.getPropertyValue(`${prefix}-${depth}`).trim() || "#ffffff");
 }
 
 /**
@@ -49,14 +54,18 @@ export function PointCloud({
   phase = 0,
   dotSize = 1,
   reveal = true,
+  sway = SWAY,
+  accentCount = 0,
   className,
 }: PointCloudProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Closed while the landing screen covers the page: draw nothing yet, so the scan-in happens in view.
+  const open = useRevealOpen();
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx || !open) return;
 
     // Fit: the widest the model gets while turning, and its height.
     let minY = Infinity;
@@ -75,6 +84,7 @@ export function PointCloud({
     let revealStart: number | null = reveal ? null : -Infinity;
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let shades = themeShades();
+    let accentShades = themeShades("--fin-dot");
     const cosT = Math.cos(tilt);
     const sinT = Math.sin(tilt);
 
@@ -84,7 +94,7 @@ export function PointCloud({
       ? [angle]
       : motion === "spin"
         ? Array.from({ length: 24 }, (_, k) => (k / 24) * Math.PI * 2)
-        : Array.from({ length: 11 }, (_, k) => angle - SWAY + (k / 10) * SWAY * 2);
+        : Array.from({ length: 11 }, (_, k) => angle - sway + (k / 10) * sway * 2);
     let left = Infinity;
     let right = -Infinity;
     let top = -Infinity;
@@ -113,7 +123,7 @@ export function PointCloud({
       const shown = reduceMotion ? 1 : Math.min(1, (t - revealStart) / REVEAL_SECONDS);
       const front = minY + shown * spanY;
 
-      const yaw = reduceMotion ? angle : motion === "spin" ? angle + t * speed + phase : angle + Math.sin(t * 0.45 + phase) * SWAY;
+      const yaw = reduceMotion ? angle : motion === "spin" ? angle + t * speed + phase : angle + Math.sin(t * 0.45 + phase) * sway;
       const cosY = Math.cos(yaw);
       const sinY = Math.sin(yaw);
       const bob = reduceMotion ? 0 : Math.sin(t * 0.9 + phase) * BOB;
@@ -139,7 +149,7 @@ export function PointCloud({
         const twinkle = reduceMotion ? 1 : 0.72 + 0.28 * Math.sin(t * (1.2 + (n % 7) * 0.35) + n * 1.7);
         const scanning = shown < 1 && front - y < 0.06;
         ctx.globalAlpha = scanning ? 1 : Math.min(1, (0.2 + 0.8 * depth) * twinkle * (0.35 + 0.65 * cloud[i + 3]));
-        ctx.fillStyle = shades[depth < 0.36 ? 0 : depth < 0.62 ? 1 : 2];
+        ctx.fillStyle = (n < accentCount ? accentShades : shades)[depth < 0.36 ? 0 : depth < 0.62 ? 1 : 2];
         const s = (0.9 + 1.3 * depth) * size;
         ctx.fillRect(sx - s / 2, sy - s / 2, s, s);
       }
@@ -158,6 +168,7 @@ export function PointCloud({
     // Switching between light and dark mode recolors the dots.
     const themeWatch = new MutationObserver(() => {
       shades = themeShades();
+      accentShades = themeShades("--fin-dot");
       if (reduceMotion) draw(0);
     });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -173,7 +184,7 @@ export function PointCloud({
       intersect.disconnect();
       themeWatch.disconnect();
     };
-  }, [cloud, motion, angle, speed, tilt, phase, dotSize, reveal]);
+  }, [cloud, motion, angle, speed, tilt, phase, dotSize, reveal, sway, accentCount, open]);
 
   return <canvas ref={canvasRef} aria-hidden="true" className={`block drop-shadow-[0_0_3px_var(--dot-glow)] ${className ?? ""}`} />;
 }

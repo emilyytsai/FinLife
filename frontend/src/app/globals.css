@@ -36,7 +36,10 @@
   --sheen-base: #d4d4d4;
   --sheen-band: #ffffff;
   --fin: #4c6ccf;
-  --fin-band: #a9bdf2;
+  --fin-band: #6a87dc;
+  --fin-dot-far: #1c2b5e;
+  --fin-dot-mid: #3b58b8;
+  --fin-dot-near: #5876d6;
 }
 
 /* Light mode: soft off-white canvas, white cards, near-black text, dark-grey dots. Chosen with the header toggle. */
@@ -70,6 +73,9 @@
   --sheen-band: #6f8fd8;
   --fin: #1e3a8a;
   --fin-band: #6f8fd8;
+  --fin-dot-far: #8ea2d4;
+  --fin-dot-mid: #2f4c9e;
+  --fin-dot-near: #17306f;
 }
 
 /* Print: back to the light palette so the advisor brief prints dark-on-white. */
