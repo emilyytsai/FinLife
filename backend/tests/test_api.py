@@ -206,6 +206,21 @@ def test_unexpected_error_returns_500_shape(client, maya, monkeypatch):
     assert response.json() == {"error": "Something went wrong"}
 
 
+def test_chat_that_crashes_still_writes_one_audit_record(client, maya, local_dir, monkeypatch):
+    from app import main
+
+    def broken(*args):
+        raise RuntimeError("could not resolve credentials from session")
+
+    monkeypatch.setattr(main, "run_coach", broken)
+    response = client.post("/chat", json=chat_body(maya, [], "How am I doing?"))
+    assert response.status_code == 500
+    assert response.json() == {"error": "Something went wrong"}
+    lines = (local_dir / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["status"] == "error"
+
+
 def test_cors_allows_frontend_and_exposes_stub_header(client):
     response = client.get("/health", headers={"Origin": "http://localhost:3000"})
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
