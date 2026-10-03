@@ -20,6 +20,54 @@ def _amortized_payment(balance: float, rate: float, years: int) -> float:
     return balance * rate / (1 - (1 + rate) ** (-years))
 
 
+def _year_zero_flows(profile: dict) -> dict:
+    """Flow values at profile.age (n = 0) for the no-event baseline.
+
+    This is the single source of truth for year-0 flow math, shared by analyze(). It mirrors
+    the first iteration of simulate()'s loop with no events applied: no house, no children, no
+    job loss, retirement_pct straight from the profile. Values are unrounded floats.
+
+    Returns income, employee, employer, take_home, expenses, debt_payments, mortgage_payment,
+    and monthly_outflow for age == profile.age.
+    """
+    assumptions = profile["assumptions"]
+    tax_rate = assumptions["tax_rate"]
+
+    income = profile["income"]
+    retirement_pct = profile["retirement_pct"]
+    employer_match_pct = profile["employer_match_pct"]
+
+    employee = income * retirement_pct
+    employer = income * min(retirement_pct, employer_match_pct)
+    take_home = (income - employee) * (1 - tax_rate)
+
+    # n = 0, so inflation factors are 1; no house means rent applies and there is no home upkeep.
+    living = profile["monthly_expenses"] * 12
+    rent = profile["monthly_rent"] * 12
+    expenses = living + rent  # no child_a, no home_cost_a at year 0 with no events
+
+    # Debt payments: profile debts only (no new_debt, no mortgage at year 0). Capped so paid <= owed.
+    debt_payments = 0.0
+    for d in profile["debts"]:
+        interest = d["balance"] * d["rate"]
+        payment = min(d["min_payment"] * 12, d["balance"] + interest)
+        debt_payments += payment
+
+    mortgage_payment = 0.0  # no house at year 0 with no events
+    monthly_outflow = (expenses + debt_payments + mortgage_payment) / 12
+
+    return {
+        "income": income,
+        "employee": employee,
+        "employer": employer,
+        "take_home": take_home,
+        "expenses": expenses,
+        "debt_payments": debt_payments,
+        "mortgage_payment": mortgage_payment,
+        "monthly_outflow": monthly_outflow,
+    }
+
+
 def simulate(profile: dict, events: list[dict]) -> dict:
     """Run the profile and events year by year and return a dict shaped like Result.
 

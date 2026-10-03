@@ -61,8 +61,8 @@ Non-secret only. Never paste AWS keys here. Fill these in as they become known.
 - Organizer answers: Is the account up through judging? How does each teammate log in? Can we create IAM roles and CloudFormation stacks (SAM)? Can Amplify connect to GitHub? Are public Function URLs, DynamoDB, and Guardrails allowed?
 
 ## Kevin: engine and AWS infra
-- [ ] K1 Engine: simulate. Due Fri 4:00 PM. Done when: the simulate placeholders in backend/tests/test_engine.py are real tests and pass; Maya's summary and flags are reported (no events, and a $350k house at 28).
-- [ ] K2 Compare, money, labels. Due Fri 4:00 PM. Done when: money() matches frontend/src/lib/format.ts (round half up, so 1250 is $1.3k); every label example in schema.md passes; K1 and K2 are merged to main.
+- [x] K1 Engine: simulate. Due Fri 4:00 PM. Done when: the simulate placeholders in backend/tests/test_engine.py are real tests and pass; Maya's summary and flags are reported (no events, and a $350k house at 28).
+- [x] K2 Compare, money, labels. Due Fri 4:00 PM. Done when: money() matches frontend/src/lib/format.ts (round half up, so 1250 is $1.3k); every label example in schema.md passes; K1 and K2 are merged to main.
 - [ ] K3 Analysis and demo tuning. Due Fri 8:00 PM. Needs K1. Done when: backend/tests/test_analysis.py passes; the demo checks are reported (no baseline flags; a cash flag between 28 and 31 with the house; a 10% 401(k) ends higher); the $5M suggested-price cap is decided.
 - [ ] K4 AWS deploy with SAM. Due Fri 8:00 PM. Needs Docker, the finlife profile, and the guardrail ID from B2 (deploy without it first if B2 isn't done). Done when: GET /health and POST /simulate on the Function URL match local; the Function URL is in Shared values.
 
