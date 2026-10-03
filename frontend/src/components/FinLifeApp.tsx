@@ -39,6 +39,11 @@ export function FinLifeApp() {
         <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
           <h1 className="text-xl font-semibold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.35)]">FinLife</h1>
           <p className="text-sm text-muted">See where your money is headed, then ask &ldquo;what if.&rdquo;</p>
+          {app.mock && (
+            <span className="rounded-full border border-watch/50 bg-watch/10 px-2.5 py-0.5 text-xs font-semibold text-watch">
+              Mock data, local test only
+            </span>
+          )}
         </header>
 
         {app.error && (
@@ -76,7 +81,7 @@ export function FinLifeApp() {
 
           <Rise order={1}>
             {app.chartProfile && app.chartCompare ? (
-              <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} />
+              <LifeCloud profile={app.chartProfile} events={app.events} compare={app.chartCompare} age={age} mockYears={app.mockYears} />
             ) : (
               <Placeholder text={ready ? "Running your numbers..." : "Your life at a glance appears here."} tall />
             )}
@@ -91,7 +96,7 @@ export function FinLifeApp() {
                 events={app.events}
                 onChange={travelTo}
                 pending={app.chartPending && hasResults}
-                trailing={<AskInput pending={app.chatPending} disabled={!ready} onSend={app.sendMessage} />}
+                trailing={<AskInput pending={app.chatPending} disabled={!ready || app.mock} onSend={app.sendMessage} />}
               />
             ) : (
               <Placeholder text="Your timeline appears here." />

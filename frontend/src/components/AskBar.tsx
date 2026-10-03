@@ -125,7 +125,12 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
         </div>
       )}
 
-      {footer && <div className="border-t border-line pt-3">{footer}</div>}
+      {/* The divider only separates the footer from something above it. */}
+      {footer && (
+        <div className={suggestions.length > 0 || events.length > 0 || (noChange && !pending) ? "border-t border-line pt-3" : ""}>
+          {footer}
+        </div>
+      )}
     </section>
   );
 }

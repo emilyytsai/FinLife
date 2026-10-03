@@ -4,6 +4,7 @@ import { PointCloud } from "@/components/cloud/PointCloud";
 import {
   cashStackCloud,
   childCloud,
+  condoCloud,
   creditCardCloud,
   debitCardCloud,
   houseCloud,
@@ -33,6 +34,7 @@ const MODELS = {
   child1: once(() => childCloud(1)),
   child2: once(() => childCloud(2)),
   house: once(houseCloud),
+  condo: once(condoCloud),
   sedan: once(sedanCloud),
   suv: once(suvCloud),
   debit: once(debitCardCloud),
@@ -62,6 +64,9 @@ export const ChildAsset = ({ className = "h-32 w-16", phase = 2.1, variant = 1 }
 );
 export const HouseAsset = ({ className = "h-52 w-64", phase = 0.4 }: AssetProps) => (
   <PointCloud cloud={MODELS.house()} motion="sway" angle={-0.55} phase={phase} tilt={0.28} className={className} />
+);
+export const CondoAsset = ({ className = "h-56 w-40", phase = 0.6 }: AssetProps) => (
+  <PointCloud cloud={MODELS.condo()} motion="sway" angle={-0.5} phase={phase} tilt={0.22} className={className} />
 );
 export const SedanAsset = ({ className = "h-28 w-52", phase = 0.8 }: AssetProps) => (
   <PointCloud cloud={MODELS.sedan()} motion="sway" angle={-0.5} phase={phase} tilt={0.3} className={className} />

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   CashStackAsset,
   ChildAsset,
+  CondoAsset,
   CreditCardAsset,
   DebitCardAsset,
   HouseAsset,
@@ -43,6 +44,9 @@ export default function LibraryPage() {
         </Tile>
         <Tile name="Family house" wide>
           <HouseAsset />
+        </Tile>
+        <Tile name="Condo">
+          <CondoAsset />
         </Tile>
         <Tile name="Sedan">
           <SedanAsset className="h-28 w-full" />

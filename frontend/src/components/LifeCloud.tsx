@@ -8,14 +8,17 @@ import {
   CreditCardAsset,
   DebitCardAsset,
   InvestmentsAsset,
+  CondoAsset,
   HouseAsset,
   NetworkSphereAsset,
   PersonAsset,
   SedanAsset,
+  SpouseAsset,
   SuvAsset,
 } from "@/components/cloud/assets";
 import { money } from "@/lib/format";
 import { lifeAt, type Detail, type LifeFigure } from "@/lib/lifeState";
+import type { MockYear } from "@/lib/mock/household";
 import type { Compare, LifeEvent, Profile } from "@/lib/types";
 
 interface LifeCloudProps {
@@ -24,6 +27,8 @@ interface LifeCloudProps {
   compare: Compare;
   /** The age to show. Driven by the timeline scrubber. */
   age: number;
+  /** Mock mode only (?mock=household): the household numbers the engine doesn't have yet. */
+  mockYears?: Record<number, MockYear> | null;
 }
 
 interface Section {
@@ -50,7 +55,7 @@ const GROUND_STEP = 24;
  * "Life Time Travel" as a LiDAR scan: the people and things in the user's life as point clouds on a dotted ground,
  * with the money in a data row below. Everything comes from the engine row, the profile, and the events at that age.
  */
-export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeCloudProps) {
+export function LifeCloud({ profile, events, compare, age: requestedAge, mockYears = null }: LifeCloudProps) {
   const rows = events.length > 0 ? compare.scenario.years : compare.baseline.years;
   const first = rows[0]?.age ?? profile.age;
   const last = rows[rows.length - 1]?.age ?? profile.retire_age;
@@ -68,7 +73,33 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
   const debt = groups.debt?.figures[0];
   const savings = groups.savings?.figures[0];
   const ownsHome = home?.name === "house";
-  const modelCount = 1 + kids.length + (ownsHome ? 1 : 0) + cars.length;
+  // Mock household (local UI testing only): a spouse and an owned condo, with their own numbers for this age.
+  const mockYear = mockYears?.[age] ?? null;
+  const spouseSections: Section[] = mockYear
+    ? [
+        {
+          title: "Spouse",
+          details: [
+            { label: "Age", value: String(mockYear.spouseAge) },
+            { label: "Income this year", value: money(mockYear.spouseIncome) },
+            { label: "Expenses", value: `${money(mockYear.spouseExpenses)}/yr` },
+          ],
+        },
+      ]
+    : [];
+  const condoSections: Section[] = mockYear
+    ? [
+        {
+          title: "Condo",
+          details: [
+            { label: "Market value", value: money(mockYear.condoValue) },
+            { label: "Remaining mortgage", value: money(mockYear.mortgageBalance) },
+            { label: "Equity", value: money(mockYear.condoValue - mockYear.mortgageBalance) },
+          ],
+        },
+      ]
+    : [];
+  const modelCount = 1 + (mockYear ? 2 : 0) + kids.length + (ownsHome ? 1 : 0) + cars.length;
   const crowded = modelCount >= CROWDED_AT;
 
   // Fallback scaling: when the row of models is wider than its safe zone, shrink the whole group to fit.
@@ -139,6 +170,16 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
                     <ChildAsset variant={i % 2 === 0 ? 1 : 2} phase={2 + i} className="h-24 w-12 sm:h-32 sm:w-16" />
                   </Item>
                 ))}
+                {mockYear && (
+                  <Item key="spouse" label="Spouse" sections={spouseSections}>
+                    <SpouseAsset className="h-40 w-16 sm:h-52 sm:w-24" />
+                  </Item>
+                )}
+                {mockYear && (
+                  <Item key="condo" label="Condo" sections={condoSections}>
+                    <CondoAsset className="h-40 w-28 sm:h-56 sm:w-40" />
+                  </Item>
+                )}
                 {ownsHome && home && (
                   <Item key={home.key} label="Home" sections={section(home)}>
                     <HouseAsset className="h-36 w-40 sm:h-52 sm:w-64" />
@@ -165,8 +206,12 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:w-48 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-2">
             <Metric label="Cash" value={shown(row.cash)} visual={<DebitCardAsset className={METRIC_VISUAL} />} />
             <Metric label="Debt" value={shown(row.debt)} visual={<CreditCardAsset className={METRIC_VISUAL} />} />
-            {/* No investments value in the engine yet (schema has no field for it), so this shows a dash, never a made-up number. */}
-            <Metric label="Investments" value={null} visual={<InvestmentsAsset className={METRIC_VISUAL} />} />
+            {/* No investments value in the engine yet (schema has no field for it): a dash, except in local mock mode. */}
+            <Metric
+              label="Investments"
+              value={mockYear ? shown(mockYear.investments) : null}
+              visual={<InvestmentsAsset className={METRIC_VISUAL} />}
+            />
             <Metric label="Retirement" value={shown(row.retirement)} visual={<NetworkSphereAsset className={METRIC_VISUAL} />} />
           </dl>
         )}

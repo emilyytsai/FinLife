@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, analyze, chat, compare, getProfiles } from "./api";
 import { withIds } from "./events";
+import { MOCK_PERSONA, mockProject, type MockYear } from "./mock/household";
+import { useMockMode } from "./mock/useMockMode";
 import { useSessionId } from "./useSessionId";
 import type {
   Analysis,
@@ -65,6 +67,9 @@ export function useFinLife() {
   const [noChange, setNoChange] = useState(false);
   /** Age of the earliest event the last question added, so the scene can travel there. */
   const [landingAge, setLandingAge] = useState<number | null>(null);
+  /** Mock mode (?mock=household): local UI testing with a browser-side household projection. */
+  const mock = useMockMode();
+  const [mockYears, setMockYears] = useState<Record<number, MockYear> | null>(null);
   const freshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Late responses must not overwrite newer ones.
@@ -110,7 +115,9 @@ export function useFinLife() {
 
   useEffect(() => {
     let active = true;
-    getProfiles()
+    // Mock mode (local UI testing): the only persona is the mock household; nothing is fetched.
+    const load = mock ? Promise.resolve([MOCK_PERSONA]) : getProfiles();
+    load
       .then((list) => {
         if (!active) return;
         setProfiles(list);
@@ -121,12 +128,21 @@ export function useFinLife() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [mock]);
 
   // Re-run the health check (and the scenario, if any) shortly after the profile stops changing.
   useEffect(() => {
     if (!profile) return;
     const timer = setTimeout(async () => {
+      if (mock) {
+        // Mock mode: numbers from the browser-side mock projection, not the engine.
+        const projected = mockProject(profile);
+        setBaseline(projected.compare.baseline);
+        setMockYears(projected.years);
+        setAnalysis(null);
+        setChartProfile(profile);
+        return;
+      }
       const seq = ++analyzeSeq.current;
       const cmpSeq = ++compareSeq.current;
       const current = eventsRef.current;
@@ -151,11 +167,16 @@ export function useFinLife() {
       }
     }, REFRESH_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [profile]);
+  }, [profile, mock]);
 
   async function sendMessage(text: string): Promise<boolean> {
     const content = text.trim();
     if (!profile || !content || chatPending) return false;
+    if (mock) {
+      // The engine doesn't know about the mock household, so what-ifs would give mismatched numbers.
+      setError("Mock data: what-ifs are off. Remove ?mock=household from the address to use them.");
+      return false;
+    }
     const before = messages;
     const history: ChatEntry[] = [...before, { role: "user", content }];
     setMessages(history);
@@ -244,6 +265,8 @@ export function useFinLife() {
     freshIds,
     noChange,
     landingAge,
+    mock,
+    mockYears: mock ? mockYears : null,
     loadProfiles,
     choosePersona,
     setProfile,
