@@ -27,6 +27,9 @@ interface PointCloudProps {
 
 const CAMERA_DISTANCE = 4;
 const REVEAL_SECONDS = 1.3;
+/** Sway half-range in radians, and how far models bob up and down (model units). */
+const SWAY = 0.5;
+const BOB = 0.03;
 const SHADES = ["#6b7280", "#b8bec8", "#ffffff"];
 
 /**
@@ -52,15 +55,14 @@ export function PointCloud({
     if (!canvas || !ctx) return;
 
     // Fit: the widest the model gets while turning, and its height.
-    let radius = 0;
     let minY = Infinity;
     let maxY = -Infinity;
-    for (let i = 0; i < cloud.length; i += 4) {
-      radius = Math.max(radius, Math.hypot(cloud[i], cloud[i + 2]));
-      minY = Math.min(minY, cloud[i + 1]);
-      maxY = Math.max(maxY, cloud[i + 1]);
+    for (let i = 1; i < cloud.length; i += 4) {
+      minY = Math.min(minY, cloud[i]);
+      maxY = Math.max(maxY, cloud[i]);
     }
     const spanY = Math.max(maxY - minY, 1e-6);
+    const midY = (minY + maxY) / 2;
 
     let width = 0;
     let height = 0;
@@ -71,20 +73,47 @@ export function PointCloud({
     const cosT = Math.cos(tilt);
     const sinT = Math.sin(tilt);
 
+    // Fit: project the model at every pose it can take (the full turn, or the sway range) and measure the outline,
+    // perspective included, so nothing is ever cut off at the canvas edge. Measured once, at unit scale.
+    const yaws = reduceMotion
+      ? [angle]
+      : motion === "spin"
+        ? Array.from({ length: 24 }, (_, k) => (k / 24) * Math.PI * 2)
+        : Array.from({ length: 11 }, (_, k) => angle - SWAY + (k / 10) * SWAY * 2);
+    let left = Infinity;
+    let right = -Infinity;
+    let top = -Infinity;
+    let bottom = Infinity;
+    for (const yaw of yaws) {
+      const c = Math.cos(yaw);
+      const s = Math.sin(yaw);
+      for (let i = 0; i < cloud.length; i += 4) {
+        const zr = -cloud[i] * s + cloud[i + 2] * c;
+        const yc = cloud[i + 1] - midY;
+        const p = CAMERA_DISTANCE / (CAMERA_DISTANCE - (yc * sinT + zr * cosT));
+        const px = (cloud[i] * c + cloud[i + 2] * s) * p;
+        const py = (yc * cosT - zr * sinT) * p;
+        left = Math.min(left, px);
+        right = Math.max(right, px);
+        top = Math.max(top, py + BOB);
+        bottom = Math.min(bottom, py - BOB);
+      }
+    }
+    const offsetX = -(left + right) / 2;
+    const offsetY = -(top + bottom) / 2;
+
     function draw(t: number) {
       if (!ctx || !visible || width === 0) return;
       if (revealStart === null) revealStart = t;
       const shown = reduceMotion ? 1 : Math.min(1, (t - revealStart) / REVEAL_SECONDS);
       const front = minY + shown * spanY;
 
-      const yaw = reduceMotion ? angle : motion === "spin" ? angle + t * speed + phase : angle + Math.sin(t * 0.45 + phase) * 0.5;
+      const yaw = reduceMotion ? angle : motion === "spin" ? angle + t * speed + phase : angle + Math.sin(t * 0.45 + phase) * SWAY;
       const cosY = Math.cos(yaw);
       const sinY = Math.sin(yaw);
-      const bob = reduceMotion ? 0 : Math.sin(t * 0.9 + phase) * 0.03;
-      // Tilt adds depth to the height, and perspective enlarges the nearest points, so leave room for both.
-      const projectedHeight = spanY * cosT + 2 * radius * Math.abs(sinT);
-      const scale = Math.min(width / (2 * radius), height / projectedHeight) / 1.12;
-      const midY = (minY + maxY) / 2;
+      const bob = reduceMotion ? 0 : Math.sin(t * 0.9 + phase) * BOB;
+      // A small margin leaves room for the dots themselves and their glow.
+      const scale = Math.min(width / (right - left), height / (top - bottom)) / 1.06;
       const size = dotSize * dpr;
 
       ctx.clearRect(0, 0, canvas!.width, canvas!.height);
@@ -99,8 +128,8 @@ export function PointCloud({
         const yt = yc * cosT - zr * sinT;
         const zt = yc * sinT + zr * cosT;
         const perspective = CAMERA_DISTANCE / (CAMERA_DISTANCE - zt);
-        const sx = (width / 2 + xr * scale * perspective) * dpr;
-        const sy = (height / 2 - (yt + bob) * scale * perspective) * dpr;
+        const sx = (width / 2 + (xr * perspective + offsetX) * scale) * dpr;
+        const sy = (height / 2 - (yt * perspective + bob + offsetY) * scale) * dpr;
         const depth = Math.min(1, Math.max(0, (zt + 1) / 2));
         const twinkle = reduceMotion ? 1 : 0.72 + 0.28 * Math.sin(t * (1.2 + (n % 7) * 0.35) + n * 1.7);
         const scanning = shown < 1 && front - y < 0.06;

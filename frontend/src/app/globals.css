@@ -108,6 +108,22 @@ body {
   border-radius: 9px;
 }
 
+/* Typewriter placeholder: a cursor that blinks at a steady, natural rate. */
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.caret-blink {
+  animation: caret-blink 1.06s step-end infinite;
+}
+
 /* Native dropdown lists take their colors from the options, not the (often transparent) select. */
 select option,
 select optgroup {

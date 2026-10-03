@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { MotionConfig, motion } from "framer-motion";
 import { RotateCw, X } from "lucide-react";
 import { AgePicker } from "@/components/AgePicker";
-import { AskBar } from "@/components/AskBar";
+import { AskBar, AskInput } from "@/components/AskBar";
 import { LifeCloud } from "@/components/LifeCloud";
 import { ProfileBar } from "@/components/ProfileBar";
 import { ProfileDrawer } from "@/components/ProfileDrawer";
@@ -91,6 +91,7 @@ export function FinLifeApp() {
                 events={app.events}
                 onChange={travelTo}
                 pending={app.chartPending && hasResults}
+                trailing={<AskInput pending={app.chatPending} disabled={!ready} onSend={app.sendMessage} />}
               />
             ) : (
               <Placeholder text="Your timeline appears here." />
