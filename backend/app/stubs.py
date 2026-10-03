@@ -175,8 +175,7 @@ def _suggested_scenarios(profile: dict) -> list[dict]:
     """The schema's suggested_scenarios rules, so stub prompts look like the real ones."""
     age, last_age = profile["age"], profile["retire_age"] - 1
     house_age, soon = min(age + 6, last_age), min(age + 3, last_age)
-    # Clamped to buy_house's max price so the suggested event always validates.
-    price = min(5_000_000, max(50_000, math.floor(profile["income"] * 6 / 10_000 + 0.5) * 10_000))
+    price = max(50_000, math.floor(profile["income"] * 6 / 10_000 + 0.5) * 10_000)
     scenarios = [
         {
             "prompt": f"What if I buy a {money_or_stub(price)} house at {house_age}?",

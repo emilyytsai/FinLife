@@ -115,7 +115,13 @@ def simulate(profile: dict, events: list[dict]) -> dict:
     mortgage_rate = 0.0
     mortgage_payment = 0.0  # level annual payment, fixed at purchase
 
-    children: list[dict] = []  # each: {"start_age", "annual_cost"}
+    # Each: {"start_age", "annual_cost"}. A child born before profile.age is already costing money: its
+    # 18-year cost stream started then, so only its remaining years fall inside the simulation.
+    children: list[dict] = [
+        {"start_age": ev["age"], "annual_cost": ev["annual_cost"]}
+        for ev in events
+        if ev["type"] == "have_child" and ev["age"] < start_age
+    ]
     job_loss_months: dict[int, int] = {}  # age -> capped months
 
     # Pre-bucket events by the age they apply at; preserve list order within an age.

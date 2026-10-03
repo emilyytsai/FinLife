@@ -74,9 +74,9 @@ Exactly five types. Every event may carry an optional "id" string made by the fr
 ```
 
 ### Event validation (checked against the request's profile)
-- profile.age <= age < profile.retire_age
+- profile.age <= age < profile.retire_age. have_child may also start up to 17 years earlier (profile.age - 17 <= age), for a child the user already has
 - At most 10 events per request; at most one buy_house
-- buy_house: 10000 <= price <= 5000000; 0 <= down_pct <= 1; 0 <= rate <= 0.2; 1 <= years <= 40
+- buy_house: price >= 10000; 0 <= down_pct <= 1; 0 <= rate <= 0.2; 1 <= years <= 40
 - have_child: 0 <= annual_cost <= 100000
 - job_loss: 1 <= months <= 12
 - set_retirement_pct: 0 <= pct <= 1
@@ -224,7 +224,7 @@ Events, applied at the start of age a:
 - buy_house: cash -= price x down_pct. home_value = price. A mortgage of price x (1 - down_pct) starts. Rent stops from age a.
 - new_debt: a debt with the given balance starts.
 - set_retirement_pct: retirement_pct = pct from age a on.
-- have_child: a child cost stream starts at age a and runs 18 years (ages a to a + 17).
+- have_child: a child cost stream starts at age a and runs 18 years (ages a to a + 17). A have_child before profile.age is already active at profile.age: only its remaining years are simulated, and the starting balances are the profile's.
 - job_loss: marks age a. Months from several job_loss events at one age add up, capped at 12.
 
 Flows for age a, with n = a - profile.age:

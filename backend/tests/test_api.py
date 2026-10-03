@@ -103,6 +103,41 @@ def test_analyze_shape(client, maya):
     assert len(body["baseline"]["years"]) == PLAN_TO_AGE - maya["age"] + 1
 
 
+def test_suggested_house_price_is_uncapped_for_high_earners(client, maya):
+    """A $1M income suggests a $6M house, and that suggestion runs through /simulate."""
+    rich = {**maya, "income": 1_000_000}
+    response = client.post("/analyze", json={"profile": rich})
+    assert response.status_code == 200
+    house = response.json()["analysis"]["suggested_scenarios"][0]["event"]
+    assert house["price"] == 6_000_000
+    assert client.post("/simulate", json={"profile": rich, "events": [house]}).status_code == 200
+
+
+def test_stub_suggested_house_price_is_uncapped(client, maya, stub_engine):
+    rich = {**maya, "income": 1_000_000}
+    response = client.post("/analyze", json={"profile": rich})
+    assert response.status_code == 200
+    assert response.json()["analysis"]["suggested_scenarios"][0]["event"]["price"] == 6_000_000
+
+
+def test_child_born_5_years_ago_costs_only_its_remaining_years(client, profiles):
+    """Priya (34) with a child born at 29: same starting balances; costs from 34 through 46, grown since birth."""
+    priya = next(p["profile"] for p in profiles if p["id"] == "priya")
+    child = {"type": "have_child", "age": 29, "annual_cost": 15000}
+    response = client.post("/compare", json={"profile": priya, "events": [child]})
+    assert response.status_code == 200
+    body = response.json()
+    baseline = {row["age"]: row for row in body["baseline"]["years"]}
+    scenario = {row["age"]: row for row in body["scenario"]["years"]}
+    extra = {age: scenario[age]["expenses"] - baseline[age]["expenses"] for age in scenario}
+    inflation = priya["assumptions"]["inflation"]
+    assert scenario[34]["cash"] == baseline[34]["cash"] == priya["cash"]
+    assert abs(extra[34] - 15000 * (1 + inflation) ** 5) <= 1
+    assert abs(extra[46] - 15000 * (1 + inflation) ** 17) <= 1
+    assert extra[47] == 0
+    assert body["diff"]["net_worth_at_retire"] < 0
+
+
 def test_chat_suggested_prompt_adds_event_and_writes_one_audit_line(client, maya, local_dir):
     prompt = suggested_prompts(client, maya)[0]
     response = client.post("/chat", json=chat_body(maya, [], prompt))

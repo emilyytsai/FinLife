@@ -170,7 +170,8 @@ export function useFinLife() {
       setEvents(nextEvents);
       const added = nextEvents.filter((next) => !events.some((old) => old.id === next.id));
       markFresh(added);
-      if (added.length > 0) setLandingAge(Math.min(...added.map((event) => event.age)));
+      // Never before today: a child the user already has starts in the past, where the plan has no numbers.
+      if (added.length > 0) setLandingAge(Math.max(profile.age, Math.min(...added.map((event) => event.age))));
       setNoChange(sameEvents(events, nextEvents));
       setScenario(response.events.length > 0 ? response.compare : null);
       setChartProfile(profile);
