@@ -42,7 +42,10 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
       .filter((a) => yearOf(a) % LABEL_EVERY === 0 && Math.abs(a - startAge) >= 6)
       .map((a) => ({ a, narrow: yearOf(a) % (LABEL_EVERY * 2) === 0 && Math.abs(a - startAge) >= 9 })),
   ];
-  const pick = (a: number) => onChange(Math.min(Math.max(a, scaleMin), scaleMax));
+  // Everything drawn on the track is held to the scale, so nothing can spill past either end.
+  const within = (a: number) => Math.min(Math.max(a, scaleMin), scaleMax);
+  const pick = (a: number) => onChange(within(a));
+  const markers = events.filter((event) => event.age >= scaleMin && event.age <= scaleMax);
 
   return (
     <section
@@ -65,7 +68,7 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
         <div className="relative min-w-0 flex-1">
           {/* What-if markers above the track; each jumps to its age. */}
           <div className="relative h-6">
-            {events.map((event) => (
+            {markers.map((event) => (
               <button
                 key={event.id ?? `${event.type}-${event.age}`}
                 type="button"
@@ -86,12 +89,21 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
             Year
           </label>
           <div className="relative">
-            {/* The years with numbers, brighter than the dimmed ends of the track (the past, and any years past age 95). */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-white/45"
-              style={{ left: at(startAge), right: `calc(100% - ${at(endAge)})` }}
-            />
+            {/* A clipped layer, bounded by the track: end caps at the first and last year, and the years with numbers
+                drawn brighter than the dimmed past. */}
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div
+                className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-white/45"
+                style={{ left: at(within(startAge)), right: `calc(100% - ${at(within(endAge))})` }}
+              />
+              {[scaleMin, scaleMax].map((a) => (
+                <div
+                  key={a}
+                  className="absolute top-1/2 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-white/35"
+                  style={{ left: at(a) }}
+                />
+              ))}
+            </div>
             <input
               id="age-picker"
               type="range"
