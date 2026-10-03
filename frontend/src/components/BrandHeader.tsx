@@ -32,8 +32,9 @@ export function BrandHeader() {
     <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
       {/* The glow sits on a wrapper (themed: none in light mode), so the title's blur-in can't replace it. */}
       <span className="drop-shadow-[0_0_10px_var(--title-glow)]">
+        {/* Hover: the letters fill with the accent color in a circle that grows from the center (no background). */}
         <motion.h1
-          className="text-xl font-bold tracking-tight"
+          className="title-fill relative text-xl font-bold tracking-tight"
           initial={{ opacity: 0, filter: "blur(8px)", letterSpacing: "0.35em" }}
           animate={{ opacity: 1, filter: "blur(0px)", letterSpacing: "-0.025em" }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
@@ -41,6 +42,9 @@ export function BrandHeader() {
           {/* "Fin" in navy, "Life" in the title color; each half keeps the sweep. */}
           <span className="brand-sheen brand-fin">Fin</span>
           <span className="brand-sheen">Life</span>
+          <span className="title-fill-layer" aria-hidden="true">
+            FinLife
+          </span>
         </motion.h1>
       </span>
       {/* Phones: title and toggle share the top row, tagline below. Wider: title, tagline, toggle in one row. */}

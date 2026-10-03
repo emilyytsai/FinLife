@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Pictogram } from "@/components/Pictogram";
 import {
   CartesianGrid,
@@ -18,6 +19,7 @@ import { EventIcon } from "@/components/EventIcon";
 import { EventMarker, MARKER_PX, MARKER_STEM, type MarkerHover, type MarkerTone } from "@/components/EventMarker";
 import { eventShortLabel, eventTooltip } from "@/lib/eventMeta";
 import { money } from "@/lib/format";
+import { tipContent, tipReveal } from "@/lib/tipReveal";
 import { useIsPhone } from "@/lib/useIsPhone";
 import type { Compare, Flag, LifeEvent, Profile, YearRow } from "@/lib/types";
 
@@ -279,11 +281,24 @@ export function TimelineChart({
               labelFormatter={(age) => `Age ${age}`}
             />
             {spans.map(([from, to]) => (
-              <ReferenceArea key={`flag-${from}`} x1={from} x2={Math.min(to + 1, endAge)} fill="var(--alert)" fillOpacity={0.08} ifOverflow="hidden" />
+              <ReferenceArea
+                key={`flag-${from}`}
+                x1={from}
+                x2={Math.min(to + 1, endAge)}
+                fill="var(--alert)"
+                fillOpacity={0.08}
+                ifOverflow="hidden"
+              />
             ))}
             {hasScenario &&
               events.map((event) => (
-                <ReferenceLine key={`line-${event.id ?? event.age}`} x={event.age} stroke="var(--accent)" strokeOpacity={0.35} strokeDasharray="2 4" />
+                <ReferenceLine
+                  key={`line-${event.id ?? event.age}`}
+                  x={event.age}
+                  stroke="var(--accent)"
+                  strokeOpacity={0.35}
+                  strokeDasharray="2 4"
+                />
               ))}
             {focusAge !== null && focusAge >= startAge && focusAge <= endAge && (
               <ReferenceLine
@@ -334,16 +349,24 @@ export function TimelineChart({
             ))}
           </LineChart>
         </ResponsiveContainer>
-        {hover && (
-          <div
-            role="tooltip"
-            className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink"
-            // Keep the centered tooltip inside the chart so it never spills off a phone screen.
-            style={{ left: Math.min(Math.max(hover.x, TOOLTIP_HALF_PX), Math.max(chartWidth - TOOLTIP_HALF_PX, TOOLTIP_HALF_PX)), top: hover.y - 6 }}
-          >
-            {hover.text}
-          </div>
-        )}
+        <AnimatePresence>
+          {hover && (
+            <motion.div
+              role="tooltip"
+              {...tipReveal("above")}
+              className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line bg-surface/90 px-2.5 py-1.5 text-xs font-medium text-ink shadow-2xl backdrop-blur-md"
+              // Keep the centered tooltip inside the chart so it never spills off a phone screen.
+              style={{
+                left: Math.min(Math.max(hover.x, TOOLTIP_HALF_PX), Math.max(chartWidth - TOOLTIP_HALF_PX, TOOLTIP_HALF_PX)),
+                top: hover.y - 6,
+              }}
+            >
+              <motion.span {...tipContent} className="block">
+                {hover.text}
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       {scrubber && onFocusAge && (
         <div style={{ paddingLeft: margin.left, paddingRight: margin.right }}>

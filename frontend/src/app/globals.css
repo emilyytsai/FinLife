@@ -291,6 +291,156 @@ body {
   }
 }
 
+/* Sliding-arrow, expanding-circle buttons (components/SlideButton). The fill and the text on it come from
+   --btn-fill / --btn-on-fill (per button), falling back to the theme's primary and page colors, so every button keeps
+   its own palette. At rest the button's own background, border, and glass show; on hover the circle covers them. */
+.slide-btn {
+  --slide-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --slide-pad: 2.25rem;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: var(--slide-pad);
+  padding-right: var(--slide-pad);
+  transition:
+    color 0.6s var(--slide-ease),
+    border-color 0.6s var(--slide-ease),
+    transform 0.2s var(--slide-ease);
+}
+
+.slide-btn .arr-1,
+.slide-btn .arr-2 {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 15px;
+  height: 15px;
+  translate: 0 -50%;
+  transition:
+    left 0.8s var(--slide-ease),
+    right 0.8s var(--slide-ease);
+}
+
+.slide-btn .arr-1 {
+  right: 0.85rem;
+}
+
+.slide-btn .arr-2 {
+  left: -25%;
+}
+
+.slide-btn .slide-text {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transform: translateX(-0.6rem);
+  transition: transform 0.8s var(--slide-ease);
+}
+
+.slide-btn .circle,
+.fill-btn .circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--btn-fill, var(--primary));
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1);
+  transition:
+    transform 0.8s var(--slide-ease),
+    opacity 0.8s var(--slide-ease);
+}
+
+.slide-btn:is(:hover, :focus-visible):not(:disabled) {
+  color: var(--btn-on-fill, var(--canvas));
+  border-color: var(--btn-fill, var(--primary));
+}
+
+.slide-btn:is(:hover, :focus-visible):not(:disabled) .arr-1 {
+  right: -25%;
+}
+
+.slide-btn:is(:hover, :focus-visible):not(:disabled) .arr-2 {
+  left: 0.85rem;
+}
+
+.slide-btn:is(:hover, :focus-visible):not(:disabled) .slide-text {
+  transform: translateX(0.6rem);
+}
+
+.slide-btn:is(:hover, :focus-visible):not(:disabled) .circle {
+  opacity: 1;
+  /* Big enough to cover even a full-width button from its center. */
+  transform: translate(-50%, -50%) scale(60);
+}
+
+.slide-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Fill-only version for round and small buttons: just the expanding circle and the color flip.
+   --fill-scale sets how far the 20px circle grows; the default covers a ~44px round button. */
+.fill-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    color 0.6s cubic-bezier(0.23, 1, 0.32, 1),
+    border-color 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.fill-btn > :not(.circle) {
+  position: relative;
+  z-index: 2;
+}
+
+.fill-btn:is(:hover, :focus-visible):not(:disabled) {
+  color: var(--btn-on-fill, var(--canvas));
+  border-color: var(--btn-fill, var(--primary));
+}
+
+.fill-btn:is(:hover, :focus-visible):not(:disabled) .circle {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(var(--fill-scale, 3));
+}
+
+/* Title hover: a copy of the word in the accent color sits exactly over it, revealed by a circle that grows from the
+   center, so the letters themselves fill with color (the background is untouched). */
+.title-fill-layer {
+  position: absolute;
+  inset: 0;
+  color: var(--accent);
+  white-space: nowrap;
+  pointer-events: none;
+  clip-path: circle(0% at 50% 50%);
+  transition: clip-path 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.title-fill:hover .title-fill-layer {
+  clip-path: circle(75% at 50% 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-btn,
+  .slide-btn .arr-1,
+  .slide-btn .arr-2,
+  .slide-btn .slide-text,
+  .slide-btn .circle,
+  .fill-btn,
+  .fill-btn .circle,
+  .title-fill-layer {
+    transition: none;
+  }
+}
+
 /* Native dropdown lists take their colors from the options, not the (often transparent) select. */
 select option,
 select optgroup {

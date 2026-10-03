@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
+import { SlideButton } from "@/components/SlideButton";
 import { ApiError, share } from "@/lib/api";
 import type { ShareRequest } from "@/lib/types";
 
@@ -43,15 +44,15 @@ export function ShareButton({ request, disabled = false }: ShareButtonProps) {
 
   return (
     <div className="space-y-2">
-      <button
+      <SlideButton
         type="button"
         onClick={handleShare}
         disabled={disabled || state.status === "sharing"}
-        className="flex w-full items-center justify-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-full border border-primary py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Share2 size={16} aria-hidden="true" />
         {state.status === "sharing" ? "Creating brief..." : "Share with an advisor"}
-      </button>
+      </SlideButton>
 
       {state.status === "done" && (
         <div className="flex items-center gap-2">
