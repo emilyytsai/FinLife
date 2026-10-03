@@ -83,7 +83,7 @@ export function PointCloud({
       const bob = reduceMotion ? 0 : Math.sin(t * 0.9 + phase) * 0.03;
       // Tilt adds depth to the height, and perspective enlarges the nearest points, so leave room for both.
       const projectedHeight = spanY * cosT + 2 * radius * Math.abs(sinT);
-      const scale = Math.min(width / (2 * radius), height / projectedHeight) / 1.3;
+      const scale = Math.min(width / (2 * radius), height / projectedHeight) / 1.12;
       const midY = (minY + maxY) / 2;
       const size = dotSize * dpr;
 

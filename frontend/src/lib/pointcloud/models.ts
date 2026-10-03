@@ -47,6 +47,16 @@ class Builder {
     }
   }
 
+  /** Points on the upper half of an ellipsoid: a rounded cap. */
+  dome(c: Vec, r: Vec, n: number, w = 1) {
+    for (let i = 0; i < n; i++) {
+      const u = this.random();
+      const theta = this.random() * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u);
+      this.add(c[0] + r[0] * s * Math.cos(theta), c[1] + r[1] * u, c[2] + r[2] * s * Math.sin(theta), w);
+    }
+  }
+
   /** Points on a tapered tube between two points (limbs, torsos). */
   tube(a: Vec, b: Vec, ra: Vec2, rb: Vec2, n: number, w = 1) {
     for (let i = 0; i < n; i++) {
@@ -110,37 +120,81 @@ function normalize(cloud: Cloud): Cloud {
 
 // ---------- Tangible assets ----------
 
-interface FigureShape {
+/** Approximate surface area of an ellipsoid (Knud Thomsen's formula). */
+function ellipsoidArea([a, b, c]: Vec): number {
+  const p = 1.6;
+  return 4 * Math.PI * (((a * b) ** p + (a * c) ** p + (b * c) ** p) / 3) ** (1 / p);
+}
+
+/** Side area of a tapered tube with elliptical ends. */
+function tubeArea(a: Vec, b: Vec, ra: Vec2, rb: Vec2): number {
+  const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+  return Math.PI * (ra[0] + ra[1] + rb[0] + rb[1]) * 0.5 * length;
+}
+
+interface MannequinShape {
+  /** Half-width from the center to each shoulder joint. */
   shoulder: number;
-  hip: number;
+  /** Head size relative to an adult's. */
   head: number;
-  legLength: number;
+  /** Leg length relative to an adult's. */
+  legs: number;
+  /** Dots per unit of surface area. */
   density: number;
   seed: number;
 }
 
-/** A standing, faceless human figure from head, torso, arms and legs. Feet near y = -1. */
-function figure({ shoulder, hip, head, legLength, density, seed }: FigureShape): Cloud {
+/**
+ * A featureless artist's mannequin: an egg-shaped head, a chest, waist and pelvis as separate soft segments, thick
+ * limbs, and ball joints at the elbows, hips and knees. Mitten hands and simple feet; no face, hair,
+ * fingers, or toes. Dots are spread by surface area so every part reads at the same density. Feet near y = -1.
+ */
+function mannequin({ shoulder, head, legs, density, seed }: MannequinShape): Cloud {
   const b = new Builder(seeded(seed));
-  const d = density;
-  const hipY = -1 + legLength;
-  const shoulderY = hipY + 0.62;
-  b.ellipsoid([0, shoulderY + 0.12 + head, 0], [head * 0.86, head, head * 0.92], Math.round(220 * d));
-  b.tube([0, shoulderY, 0], [0, shoulderY + 0.1, 0], [0.05, 0.05], [0.05, 0.05], Math.round(24 * d));
-  b.tube([0, hipY, 0], [0, shoulderY, 0], [hip, 0.12], [shoulder, 0.13], Math.round(520 * d));
-  b.ellipsoid([0, shoulderY, 0], [shoulder, 0.06, 0.13], Math.round(90 * d));
-  for (const side of [-1, 1]) {
-    b.tube([side * (shoulder + 0.04), shoulderY - 0.02, 0], [side * (shoulder + 0.09), hipY - 0.08, 0.03], [0.055, 0.055], [0.045, 0.045], Math.round(150 * d));
-    b.tube([side * hip * 0.5, hipY, 0], [side * hip * 0.55, -1, 0.02], [0.08, 0.085], [0.055, 0.06], Math.round(230 * d));
+  const ellipsoid = (c: Vec, r: Vec, w = 0.85) => b.ellipsoid(c, r, Math.max(6, Math.round(ellipsoidArea(r) * density)), w);
+  const tube = (from: Vec, to: Vec, ra: Vec2, rb: Vec2, w = 0.85) =>
+    b.tube(from, to, ra, rb, Math.max(6, Math.round(tubeArea(from, to, ra, rb) * density)), w);
+  const joint = (c: Vec, r: number) => ellipsoid(c, [r, r, r], 1);
+
+  // Legs set the hip height; the torso is built up from there.
+  const knee = -1 + 0.47 * legs;
+  const hip = -1 + 0.94 * legs;
+  const up = (y: number) => hip + y;
+
+  for (const s of [-1, 1]) {
+    ellipsoid([s * 0.11, -0.97, 0.035], [0.055, 0.032, 0.1]);
+    tube([s * 0.11, -0.94, 0], [s * 0.115, knee - 0.03, 0], [0.045, 0.048], [0.06, 0.064]);
+    joint([s * 0.115, knee, 0], 0.066);
+    tube([s * 0.115, knee + 0.03, 0], [s * 0.118, hip - 0.03, 0], [0.066, 0.07], [0.09, 0.095]);
+    joint([s * 0.118, hip - 0.01, 0], 0.088);
+  }
+
+  ellipsoid([0, up(0.02), 0], [0.2, 0.12, 0.13]);
+  tube([0, up(0.1), 0], [0, up(0.24), 0], [0.17, 0.11], [0.18, 0.115]);
+  ellipsoid([0, up(0.41), 0], [shoulder * 0.84, 0.18, 0.125]);
+  tube([0, up(0.58), 0], [0, up(0.68), 0], [0.048, 0.048], [0.045, 0.045]);
+  ellipsoid([0, up(0.68) + 0.13 * head, 0.005], [0.105 * head, 0.135 * head, 0.118 * head]);
+
+  for (const s of [-1, 1]) {
+    // Arms sit just inside the shoulder width, so the frame reads narrow while the chest keeps its size.
+    const x = s * (shoulder - 0.015);
+    // No shoulder ball: the upper arm runs out of the chest under a rounded cap.
+    const cap: Vec = [0.058, 0.045, 0.06];
+    // The cap sits well below the top of the chest, for a relaxed, sloping shoulder.
+    b.dome([x - s * 0.004, up(0.475), 0], cap, Math.round((ellipsoidArea(cap) / 2) * density), 0.85);
+    tube([x, up(0.475), 0], [x + s * 0.085, up(0.22), 0.01], [0.054, 0.056], [0.047, 0.049]);
+    joint([x + s * 0.09, up(0.2), 0.012], 0.05);
+    tube([x + s * 0.095, up(0.18), 0.015], [x + s * 0.13, up(-0.07), 0.03], [0.046, 0.048], [0.038, 0.04]);
+    ellipsoid([x + s * 0.137, up(-0.14), 0.035], [0.034, 0.066, 0.046]);
   }
   return b.build();
 }
 
-export const personCloud = (): Cloud => figure({ shoulder: 0.24, hip: 0.18, head: 0.14, legLength: 0.94, density: 1, seed: 11 });
-export const spouseCloud = (): Cloud => figure({ shoulder: 0.21, hip: 0.19, head: 0.135, legLength: 0.9, density: 1, seed: 23 });
-/** Children: shorter legs and a larger head for their height. Rendered smaller by the component. */
+export const personCloud = (): Cloud => mannequin({ shoulder: 0.235, head: 1, legs: 1, density: 1500, seed: 11 });
+export const spouseCloud = (): Cloud => mannequin({ shoulder: 0.215, head: 0.97, legs: 0.97, density: 1500, seed: 23 });
+/** Children: a larger head and shorter legs for their height. Rendered smaller by the component. */
 export const childCloud = (variant: 1 | 2 = 1): Cloud =>
-  figure({ shoulder: 0.2, hip: 0.16, head: 0.17, legLength: variant === 1 ? 0.7 : 0.62, density: 0.7, seed: 31 + variant });
+  mannequin({ shoulder: 0.22, head: 1.3, legs: variant === 1 ? 0.78 : 0.7, density: 1100, seed: 31 + variant });
 
 /** A gabled house: walls scanned in horizontal lines with real openings for the door and windows. */
 export function houseCloud(): Cloud {
