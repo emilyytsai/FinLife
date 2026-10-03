@@ -121,6 +121,16 @@ def test_invalid_tool_input_goes_back_as_an_error_the_model_can_fix(bedrock, may
     assert result.events == [HOUSE]
 
 
+def test_a_child_born_before_today_is_accepted_and_shows_todays_row(bedrock, maya):
+    child = {"type": "have_child", "age": 17, "annual_cost": 15000}
+    fake = bedrock(set_events([child]), text("Your 5-year-old adds costs until 35."))
+    result = ask(maya, "What if I had a kid 5 years ago?")
+    output = json.loads(tool_result(fake.requests[1])["content"])
+    assert result.events == [child]
+    assert result.tool_calls[0]["is_error"] is False
+    assert [row["age"] for row in output["rows"]] == [22, 60]
+
+
 def test_question_without_a_change_keeps_the_plan_and_its_ids(bedrock, maya):
     events = [{**JOB_LOSS, "id": "e1"}]
     bedrock(text("You're in good shape at 31."))
