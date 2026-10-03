@@ -58,7 +58,7 @@ export function AskInput({ pending, disabled, onSend }: AskInputProps) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           maxLength={500}
-          className="glass-inset w-full rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-white/20"
+          className="glass-inset w-full rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ink/20"
         />
         {showPlaceholder && (
           <AnimatedPlaceholder

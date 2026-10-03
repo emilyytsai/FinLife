@@ -142,7 +142,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
   return (
     <MotionConfig reducedMotion="user">
-      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-black p-5 text-neutral-100 sm:p-6">
+      <section aria-labelledby="cloud-heading" className="relative rounded-card bg-canvas p-5 text-ink sm:p-6">
         <h2 id="cloud-heading" className="sr-only">
           Your life at age {age}
         </h2>
@@ -153,7 +153,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
           </dl>
         )}
         {outside && (
-          <p className="mt-1 text-center text-xs text-neutral-500">
+          <p className="mt-1 text-center text-xs text-muted">
             {outside === "before" ? "Before today: no numbers yet." : `The plan runs to age ${last}.`}
           </p>
         )}
@@ -164,7 +164,7 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
             <div
               className="absolute inset-x-[-20%] bottom-0 h-32 origin-bottom transition-[background-position] duration-700 ease-out [mask-image:linear-gradient(to_top,black,transparent)] [transform:perspective(420px)_rotateX(62deg)]"
               style={{
-                backgroundImage: "radial-gradient(rgba(229,229,229,0.45) 1px, transparent 1.5px)",
+                backgroundImage: "radial-gradient(var(--ground-dot) 1px, transparent 1.5px)",
                 backgroundSize: `${GROUND_STEP}px ${GROUND_STEP}px`,
                 backgroundPosition: `${-(age - profile.age) * GROUND_STEP}px 0`,
               }}
@@ -247,8 +247,8 @@ function Figure({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
-      <dd className={`font-light tabular-nums tracking-tight text-white ${large ? "text-5xl" : "text-2xl"}`} aria-live="polite">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{label}</dt>
+      <dd className={`font-light tabular-nums tracking-tight text-ink ${large ? "text-5xl" : "text-2xl"}`} aria-live="polite">
         {value === null ? "—" : <AnimatedNumber value={value} format={format} />}
       </dd>
     </div>
@@ -267,13 +267,13 @@ function Metric({ label, value, visual, sections }: { label: string; value: numb
         onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget.parentElement ?? event.currentTarget))}
         onFocus={(event) => tip.show(event.currentTarget.parentElement ?? event.currentTarget)}
         onBlur={tip.hide}
-        className="shrink-0 rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+        className="shrink-0 rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
       >
         {visual}
       </button>
       <div>
-        <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
-        <dd className="text-2xl font-light tabular-nums tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.35)]">
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{label}</dt>
+        <dd className="text-2xl font-light tabular-nums tracking-tight text-ink drop-shadow-[0_0_8px_var(--number-glow)]">
           {value === null ? "—" : <AnimatedNumber value={value} format={money} />}
         </dd>
       </div>
@@ -325,18 +325,18 @@ function TipCard({ side, sections }: { side: Side; sections: Section[] }) {
       initial={{ opacity: 0, x: side === "right" ? -6 : side === "left" ? 6 : 0, y: side.startsWith("below") ? -4 : 0 }}
       animate={{ opacity: 1, x: 0, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-white/15 bg-neutral-950/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
+      className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-line bg-surface/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
     >
       {sections.map((part, index) => (
-        <div key={part.title} className={index > 0 ? "mt-2 border-t border-white/10 pt-2" : ""}>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">{part.title}</p>
-          {part.note && <p className="mt-1 text-neutral-300">{part.note}</p>}
+        <div key={part.title} className={index > 0 ? "mt-2 border-t border-line pt-2" : ""}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{part.title}</p>
+          {part.note && <p className="mt-1 text-ink/80">{part.note}</p>}
           {part.details.length > 0 && (
             <dl className="mt-1 space-y-0.5">
               {part.details.map((detail) => (
                 <div key={detail.label} className="flex justify-between gap-3">
-                  <dt className="text-neutral-400">{detail.label}</dt>
-                  <dd className="tabular-nums text-white">{detail.value}</dd>
+                  <dt className="text-muted">{detail.label}</dt>
+                  <dd className="tabular-nums text-ink">{detail.value}</dd>
                 </div>
               ))}
             </dl>
@@ -368,7 +368,7 @@ function Item({ label, sections, children }: { label: string; sections: Section[
         onClick={(event) => (tip.open ? tip.hide() : tip.show(event.currentTarget))}
         onFocus={(event) => tip.show(event.currentTarget)}
         onBlur={tip.hide}
-        className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-white/60"
+        className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-ink/40"
       >
         {children}
       </button>
