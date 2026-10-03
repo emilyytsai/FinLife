@@ -381,6 +381,41 @@ export function waveChartCloud(): Cloud {
   return normalize(b.build());
 }
 
+/** Investments: a rising 3D bar chart (columns scanned in rows, bright edges) under a climbing trend arrow. */
+export function investmentsCloud(): Cloud {
+  const b = new Builder(seeded(79));
+  const heights = [0.35, 0.55, 0.5, 0.8, 1.1];
+  const width = 0.24;
+  const depth = 0.24;
+  const tops: Vec[] = [];
+  heights.forEach((h, i) => {
+    const x0 = -0.9 + i * 0.38;
+    const [x1, y0, y1, z0, z1] = [x0 + width, -0.6, -0.6 + h, -depth / 2, depth / 2];
+    b.boxEdges([x0, y0, z0], [x1, y1, z1], 0.025, 1);
+    // Faces as horizontal scan rows, like the house walls.
+    for (let y = y0; y <= y1 + 1e-6; y += 0.06) {
+      for (let x = x0; x <= x1 + 1e-6; x += 0.05) {
+        b.add(x, y, z1, 0.5);
+        b.add(x, y, z0, 0.3);
+      }
+      for (let z = z0; z <= z1 + 1e-6; z += 0.05) {
+        b.add(x0, y, z, 0.4);
+        b.add(x1, y, z, 0.4);
+      }
+    }
+    for (let x = x0; x <= x1 + 1e-6; x += 0.05) for (let z = z0; z <= z1 + 1e-6; z += 0.05) b.add(x, y1, z, 0.6);
+    tops.push([x0 + width / 2, y1 + 0.16, 0]);
+  });
+  b.polyline(tops, 0.03, 1);
+  // Arrowhead on the last segment.
+  const [ax, ay] = [tops[tops.length - 1][0], tops[tops.length - 1][1]];
+  b.line([ax, ay, 0], [ax - 0.14, ay - 0.02, 0], 0.025, 1);
+  b.line([ax, ay, 0], [ax - 0.05, ay - 0.14, 0], 0.025, 1);
+  // A floor line the columns stand on.
+  b.line([-1, -0.6, 0.2], [1, -0.6, 0.2], 0.04, 0.4);
+  return normalize(b.build());
+}
+
 /** Other investments: floating market nodes of different sizes, tethered to a center. */
 export function marketNodesCloud(): Cloud {
   const b = new Builder(seeded(73));

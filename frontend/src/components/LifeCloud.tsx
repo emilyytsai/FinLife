@@ -7,6 +7,7 @@ import {
   ChildAsset,
   CreditCardAsset,
   DebitCardAsset,
+  InvestmentsAsset,
   HouseAsset,
   NetworkSphereAsset,
   PersonAsset,
@@ -33,6 +34,9 @@ interface Section {
 const section = (figure: LifeFigure | undefined): Section[] =>
   figure && figure.details.length > 0 ? [{ title: figure.title, details: figure.details }] : [];
 const isSuv = (title: string) => /\b(suv|truck|van)\b/i.test(title);
+
+/** Size of each money tile's point cloud: a little smaller on wide screens, where four stack beside the scene. */
+const METRIC_VISUAL = "size-14 sm:size-16 lg:size-16";
 
 /** Pixels the ground grid shifts per year of age, so scrubbing reads as travel. */
 const GROUND_STEP = 24;
@@ -125,10 +129,12 @@ export function LifeCloud({ profile, events, compare, age: requestedAge }: LifeC
 
         {/* The money, floating over the right of the scene on wide screens (below it on narrow ones). No borders. */}
         {row && (
-          <dl className="mt-2 grid grid-cols-1 gap-1 min-[420px]:grid-cols-3 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-3">
-            <Metric label="Cash" value={shown(row.cash)} visual={<DebitCardAsset className="size-16 sm:size-20" />} />
-            <Metric label="401(k)" value={shown(row.retirement)} visual={<NetworkSphereAsset className="size-16 sm:size-20" />} />
-            <Metric label="Debt" value={shown(row.debt)} visual={<CreditCardAsset className="size-16 sm:size-20" />} />
+          <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 lg:absolute lg:right-6 lg:top-1/2 lg:z-10 lg:mt-0 lg:-translate-y-1/2 lg:grid-cols-1 lg:gap-2">
+            <Metric label="Cash" value={shown(row.cash)} visual={<DebitCardAsset className={METRIC_VISUAL} />} />
+            <Metric label="Debt" value={shown(row.debt)} visual={<CreditCardAsset className={METRIC_VISUAL} />} />
+            {/* No investments value in the engine yet (schema has no field for it), so this shows a dash, never a made-up number. */}
+            <Metric label="Investments" value={null} visual={<InvestmentsAsset className={METRIC_VISUAL} />} />
+            <Metric label="Retirement" value={shown(row.retirement)} visual={<NetworkSphereAsset className={METRIC_VISUAL} />} />
           </dl>
         )}
       </section>
