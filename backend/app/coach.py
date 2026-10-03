@@ -104,9 +104,9 @@ def bedrock_client() -> AnthropicBedrock:
 class BedrockModel:
     """Paced model calls. If a call fails, retry it once on the fallback model and keep that model for the turn."""
 
-    def __init__(self):
+    def __init__(self, model_id: str | None = None):
         settings = get_settings()
-        self.model_id = settings.bedrock_model_id
+        self.model_id = model_id or settings.bedrock_model_id
         self.fallback_id = settings.bedrock_fallback_model_id
         self.calls = 0
 
