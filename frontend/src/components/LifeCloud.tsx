@@ -210,9 +210,39 @@ function Metric({ label, value, visual }: { label: string; value: number | null;
   );
 }
 
-/** One point-cloud model in the scene. Hover, focus, or tap shows its values. */
+type Side = "right" | "left" | "below" | "below-start" | "below-end";
+/** The hover card's width (w-60) and its gap from the model, in px. */
+const TIP_WIDTH = 240;
+const TIP_GAP = 12;
+const TIP_POSITION: Record<Side, string> = {
+  right: "left-full top-1/2 ml-3 -translate-y-1/2",
+  left: "right-full top-1/2 mr-3 -translate-y-1/2",
+  below: "left-1/2 top-full mt-2 -translate-x-1/2",
+  "below-start": "left-0 top-full mt-2",
+  "below-end": "right-0 top-full mt-2",
+};
+
+/** One point-cloud model in the scene. Hover, focus, or tap shows its values beside it. */
 function Item({ label, sections, children }: { label: string; sections: Section[]; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [side, setSide] = useState<Side>("right");
+
+  // Open beside the model, toward the side of the screen with more room; below it if neither side fits.
+  function show(el: Element) {
+    const rect = el.getBoundingClientRect();
+    const roomRight = window.innerWidth - rect.right;
+    const roomLeft = rect.left;
+    const needed = TIP_WIDTH + TIP_GAP + 8;
+    if (roomRight >= needed && roomRight >= roomLeft) setSide("right");
+    else if (roomLeft >= needed) setSide("left");
+    else {
+      // Below, kept on screen: lined up with the model's edge when centering would run off either side.
+      const center = rect.left + rect.width / 2;
+      setSide(center - TIP_WIDTH / 2 < 8 ? "below-start" : center + TIP_WIDTH / 2 > window.innerWidth - 8 ? "below-end" : "below");
+    }
+    setOpen(true);
+  }
+
   return (
     <motion.li
       layout
@@ -221,15 +251,15 @@ function Item({ label, sections, children }: { label: string; sections: Section[
       exit={{ opacity: 0, transition: { duration: 0.3 } }}
       transition={{ duration: 0.4 }}
       className="relative"
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={(event) => show(event.currentTarget)}
       onMouseLeave={() => setOpen(false)}
     >
       <button
         type="button"
         aria-label={label}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        onFocus={() => setOpen(true)}
+        onClick={(event) => (open ? setOpen(false) : show(event.currentTarget))}
+        onFocus={(event) => show(event.currentTarget)}
         onBlur={() => setOpen(false)}
         className="block rounded-xl outline-none focus-visible:ring-1 focus-visible:ring-white/60"
       >
@@ -239,10 +269,10 @@ function Item({ label, sections, children }: { label: string; sections: Section[
         {open && sections.length > 0 && (
           <motion.div
             role="tooltip"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: side === "right" ? -6 : side === "left" ? 6 : 0, y: side.startsWith("below") ? -4 : 0 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
-            className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-60 -translate-x-1/2 rounded-xl border border-white/15 bg-neutral-950/90 p-3 text-sm shadow-2xl backdrop-blur-md"
+            className={`pointer-events-none absolute z-20 w-60 rounded-xl border border-white/15 bg-neutral-950/90 p-3 text-sm shadow-2xl backdrop-blur-md ${TIP_POSITION[side]}`}
           >
             {sections.map((part, index) => (
               <div key={part.title} className={index > 0 ? "mt-2 border-t border-white/10 pt-2" : ""}>

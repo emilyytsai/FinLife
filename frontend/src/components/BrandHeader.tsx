@@ -14,7 +14,7 @@ export function BrandHeader() {
   return (
     <header className="mx-auto flex w-full max-w-5xl flex-wrap items-baseline gap-x-3 gap-y-1 px-4 pt-4 sm:px-6">
       <motion.h1
-        className="brand-sheen text-xl font-semibold tracking-tight"
+        className="brand-sheen text-xl font-bold tracking-tight"
         // The glow lives in the animated filter too, so the blur-in doesn't replace it.
         initial={{ opacity: 0, filter: `blur(8px) ${GLOW}`, letterSpacing: "0.35em" }}
         animate={{ opacity: 1, filter: `blur(0px) ${GLOW}`, letterSpacing: "-0.025em" }}

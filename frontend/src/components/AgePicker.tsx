@@ -1,9 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { EventIcon } from "@/components/EventIcon";
-import { eventLabel } from "@/lib/eventMeta";
+import { eventDetails, eventLabel } from "@/lib/eventMeta";
 import type { LifeEvent } from "@/lib/types";
 
 interface AgePickerProps {
@@ -69,19 +70,22 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
           {/* What-if markers above the track; each jumps to its age. */}
           <div className="relative h-6">
             {markers.map((event) => (
-              <button
+              <Marker
                 key={event.id ?? `${event.type}-${event.age}`}
-                type="button"
-                onClick={() => pick(event.age)}
-                aria-label={`Go to ${yearOf(event.age)}, age ${event.age}: ${eventLabel(event)}`}
-                title={eventLabel(event)}
-                className={`absolute bottom-0 -translate-x-1/2 rounded-md p-0.5 transition-opacity hover:opacity-100 ${
-                  event.age <= age ? "text-ink" : "text-muted opacity-60"
-                }`}
-                style={{ left: at(event.age) }}
-              >
-                <EventIcon event={event} size={20} />
-              </button>
+                event={event}
+                year={yearOf(event.age)}
+                reached={event.age <= age}
+                left={at(event.age)}
+                // Cards near either end of the track open inward so they stay on screen.
+                align={
+                  (event.age - scaleMin) / (scaleMax - scaleMin) < 0.2
+                    ? "start"
+                    : (event.age - scaleMin) / (scaleMax - scaleMin) > 0.8
+                      ? "end"
+                      : "center"
+                }
+                onPick={() => pick(event.age)}
+              />
             ))}
           </div>
 
@@ -132,5 +136,63 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
       </div>
       {trailing && <div className="md:w-80 md:shrink-0 md:border-l md:border-line md:pl-6">{trailing}</div>}
     </section>
+  );
+}
+
+interface MarkerProps {
+  event: LifeEvent;
+  year: number;
+  reached: boolean;
+  left: string;
+  align: "start" | "center" | "end";
+  onPick: () => void;
+}
+
+/** A what-if's icon above the track. Hover or focus shows its specifics; a click jumps to its age. */
+function Marker({ event, year, reached, left, align, onPick }: MarkerProps) {
+  const [open, setOpen] = useState(false);
+  const position = align === "start" ? "left-0" : align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
+  return (
+    <div
+      className="absolute bottom-0 -translate-x-1/2"
+      style={{ left }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={onPick}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        aria-label={`Go to ${year}, age ${event.age}: ${eventLabel(event)}`}
+        className={`rounded-md p-0.5 transition-opacity hover:opacity-100 ${reached ? "text-ink" : "text-muted opacity-60"}`}
+      >
+        <EventIcon event={event} size={20} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="tooltip"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            className={`pointer-events-none absolute bottom-full z-30 mb-2 w-60 rounded-xl border border-white/15 bg-neutral-950/90 p-3 text-sm shadow-2xl backdrop-blur-md ${position}`}
+          >
+            <p className="font-medium text-ink">{eventLabel(event)}</p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-muted">
+              {year} &middot; age {event.age}
+            </p>
+            <dl className="mt-2 space-y-0.5 border-t border-white/10 pt-2">
+              {eventDetails(event).map((detail) => (
+                <div key={detail.label} className="flex justify-between gap-3">
+                  <dt className="text-muted">{detail.label}</dt>
+                  <dd className="tabular-nums text-ink">{detail.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
