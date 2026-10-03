@@ -7,6 +7,7 @@ import {
   creditCardCloud,
   debitCardCloud,
   houseCloud,
+  investmentsCloud,
   marketNodesCloud,
   networkSphereCloud,
   personCloud,
@@ -41,6 +42,7 @@ const MODELS = {
   cube: once(savingsCubeCloud),
   wave: once(waveChartCloud),
   market: once(marketNodesCloud),
+  investments: once(investmentsCloud),
 };
 
 interface AssetProps {
@@ -86,6 +88,9 @@ export const SavingsCubeAsset = ({ className = "size-24", phase = 1.1 }: AssetPr
 );
 export const WaveChartAsset = ({ className = "size-24", phase = 0.7 }: AssetProps) => (
   <PointCloud cloud={MODELS.wave()} motion="sway" angle={-0.5} tilt={0.5} phase={phase} className={className} />
+);
+export const InvestmentsAsset = ({ className = "size-24", phase = 1.4 }: AssetProps) => (
+  <PointCloud cloud={MODELS.investments()} motion="sway" angle={-0.45} tilt={0.3} phase={phase} className={className} />
 );
 export const MarketNodesAsset = ({ className = "size-24", phase = 1.9 }: AssetProps) => (
   <PointCloud cloud={MODELS.market()} motion="spin" speed={0.24} phase={phase} className={className} />

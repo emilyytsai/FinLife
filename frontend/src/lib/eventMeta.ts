@@ -76,3 +76,32 @@ export function eventLabel(event: LifeEvent): string {
       return `Take on a ${money(event.balance)} ${loanName(event.name.trim())} at ${event.age}`;
   }
 }
+
+/** The specifics of an event as label/value rows, for hover cards. Values come straight from the event. */
+export function eventDetails(event: LifeEvent): { label: string; value: string }[] {
+  switch (event.type) {
+    case "buy_house":
+      return [
+        { label: "Purchase price", value: money(event.price) },
+        { label: "Down payment", value: `${money(event.price * event.down_pct)} (${pct(event.down_pct)})` },
+        { label: "Mortgage", value: money(event.price * (1 - event.down_pct)) },
+        { label: "Rate", value: pct(event.rate) },
+        { label: "Term", value: `${event.years} yrs` },
+      ];
+    case "have_child":
+      return [
+        { label: "Cost in first year", value: `${money(event.annual_cost)}/yr` },
+        { label: "Costs run", value: "18 yrs" },
+      ];
+    case "job_loss":
+      return [{ label: "Out of work", value: `${event.months} ${event.months === 1 ? "month" : "months"}` }];
+    case "set_retirement_pct":
+      return [{ label: "401(k) contribution", value: `${pct(event.pct)} of income` }];
+    case "new_debt":
+      return [
+        { label: "Amount", value: money(event.balance) },
+        { label: "Rate", value: pct(event.rate) },
+        { label: "Term", value: `${event.years} yrs` },
+      ];
+  }
+}
