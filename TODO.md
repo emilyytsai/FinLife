@@ -110,6 +110,7 @@ Done when, for each task: npm run lint and npm run build pass, and it works on s
 - [ ] Before judging (Sat 9:30 AM): hit /health on the Function URL a minute early, confirm the account is still up, and have offline mode ready (Ctrl+Shift+O).
 
 ## Open decisions
+- Decided Sat Oct 3: a what-if can add a child the user already has ("What if we had a kid 5 years ago?"). have_child may start up to 17 years before profile.age; today's balances stay as entered and only the child's remaining years of costs are simulated (schema, engine, models, coach prompt; the frontend lands on today, not the birth year).
 - Decided Sat Oct 3: the suggested house price stays uncapped. buy_house has no price max (schema, models, and stub updated), so /analyze works for incomes above about $833k.
 - money() must round half up in the engine and the frontend alike, so both give identical strings.
 - Owners for the demo video, the code ZIP, and the submission form.

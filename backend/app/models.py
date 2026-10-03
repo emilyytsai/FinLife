@@ -207,16 +207,20 @@ class ScenarioRequest(InputModel):
 
     @model_validator(mode="after")
     def events_fit_profile(self):
-        first, last = self.profile.age, self.profile.retire_age - 1
-        problems = [
-            _error(("events", i, "age"), f"Age must be between {first} and {last}", event.age)
-            for i, event in enumerate(self.events)
-            if not first <= event.age <= last
-        ]
+        last = self.profile.retire_age - 1
+        problems = []
+        for i, event in enumerate(self.events):
+            first = self._first_age(event)
+            if not first <= event.age <= last:
+                problems.append(_error(("events", i, "age"), f"Age must be between {first} and {last}", event.age))
         if sum(event.type == "buy_house" for event in self.events) > 1:
             problems.append(_error(("events",), "Only one home purchase is allowed", len(self.events)))
         _raise_if(problems, type(self).__name__)
         return self
+
+    def _first_age(self, event) -> int:
+        """Events start today, except a child the user already has: born up to 17 years ago, so still under 18."""
+        return self.profile.age - 17 if event.type == "have_child" else self.profile.age
 
 
 class SimulateRequest(ScenarioRequest):

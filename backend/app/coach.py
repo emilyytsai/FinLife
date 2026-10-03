@@ -36,6 +36,7 @@ How you work:
 - To change the scenario, call set_events with the FULL list of events. Keep existing events unless the user removes or changes them. Then explain the result.
 - Every number you mention must come from the tool result, the profile, or the events. Never calculate, estimate, or convert numbers yourself.
 - If a detail is missing, use these defaults and say so in a short clause: house price from the suggested scenarios, 10% down, 6.5% rate, 30 years; child $15k a year; job loss 6 months; car loan 7% over 5 years.
+- A child the user already has, born N years ago, is a have_child event at their current age minus N. Their current cash, savings, and debts stay as the profile shows, and the child's costs continue until the child turns 18.
 - Write dollar amounts the way the tool result's labels do ($350k, $1.2M).
 - When you use a tool, you may say a brief sentence first. If no tool can express what the user asked for, say so instead of guessing. Do not include internal or system XML tags in your response.
 
@@ -217,7 +218,8 @@ class CoachTurn:
 
     def _tool_output(self, events: list[dict]) -> dict:
         compare = compare_or_stub(self.profile, events)
-        ages = {event["age"] for event in events} | {self.profile["retire_age"]}
+        # A child born before today has no row of its own, so it shows today's.
+        ages = {max(event["age"], self.profile["age"]) for event in events} | {self.profile["retire_age"]}
         return {
             "events": [label_or_stub(event) for event in events],
             **_compare_summary(compare),

@@ -84,6 +84,17 @@ def test_rejects_event_before_current_age(maya):
     assert errors == [{"field": "events.0.age", "message": "Age must be between 22 and 59"}]
 
 
+def test_accepts_a_child_born_before_current_age(maya):
+    child = {"type": "have_child", "age": 17, "annual_cost": 15000}
+    SimulateRequest.model_validate({"profile": maya, "events": [child]})
+
+
+def test_rejects_a_child_already_18_or_older(maya):
+    child = {"type": "have_child", "age": 4, "annual_cost": 15000}
+    errors = errors_for(SimulateRequest, {"profile": maya, "events": [child]})
+    assert errors == [{"field": "events.0.age", "message": "Age must be between 5 and 59"}]
+
+
 def test_rejects_event_at_or_after_retire_age(maya):
     errors = errors_for(SimulateRequest, {"profile": maya, "events": [job_loss(25), job_loss(60)]})
     assert errors == [{"field": "events.1.age", "message": "Age must be between 22 and 59"}]
