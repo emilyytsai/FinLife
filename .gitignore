@@ -5,6 +5,8 @@ __pycache__/
 *.pyc
 node_modules/
 .aws-sam/
+.build/
 .local/
 .pytest_cache/
 .kiroignore
+.playwright-mcp/
