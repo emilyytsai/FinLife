@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Send } from "lucide-react";
 import { AnimatedPlaceholder } from "@/components/AnimatedPlaceholder";
 import { EventChips } from "@/components/EventChips";
+import { SlideButton } from "@/components/SlideButton";
 import type { LifeEvent } from "@/lib/types";
 
 /** Example questions the empty box cycles through. Phrased as the user's own "What if I..." questions. */
@@ -58,7 +59,7 @@ export function AskInput({ pending, disabled, onSend }: AskInputProps) {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           maxLength={500}
-          className="glass-inset w-full rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ink/20"
+          className="glass-inset w-full rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-accent/50"
         />
         {showPlaceholder && (
           <AnimatedPlaceholder
@@ -72,8 +73,10 @@ export function AskInput({ pending, disabled, onSend }: AskInputProps) {
         type="submit"
         disabled={busy || !draft.trim()}
         aria-label="Ask"
-        className="glass-strong flex size-11 shrink-0 items-center justify-center rounded-full text-ink disabled:opacity-40"
+        className="glass-strong fill-btn flex size-11 shrink-0 items-center justify-center rounded-full text-ink disabled:opacity-40"
+        style={{ "--btn-fill": "var(--accent)" } as CSSProperties}
       >
+        <span className="circle" aria-hidden="true" />
         <Send size={16} aria-hidden="true" />
       </button>
     </form>
@@ -106,15 +109,16 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
       {suggestions.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {suggestions.map((prompt) => (
-            <button
+            <SlideButton
               key={prompt}
               type="button"
               disabled={busy}
               onClick={() => onSend(prompt)}
-              className="rounded-full border border-line px-3 py-1 text-left text-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-soft disabled:opacity-50"
+              fill="var(--accent)"
+              className="rounded-full border border-line py-1 text-left text-sm disabled:opacity-50 [--slide-pad:1.9rem]"
             >
               {prompt}
-            </button>
+            </SlideButton>
           ))}
         </div>
       )}

@@ -2,6 +2,7 @@
 
 import { SlidersHorizontal } from "lucide-react";
 import { Pictogram } from "@/components/Pictogram";
+import { SlideButton } from "@/components/SlideButton";
 import { money, pct } from "@/lib/format";
 import type { DemoProfile, Profile } from "@/lib/types";
 
@@ -54,17 +55,21 @@ export function ProfileBar({ profiles, personaId, profile, hasErrors, onPersona,
         )}
         <p className="truncate text-xs text-muted">Demo persona · {facts.join(" · ")}</p>
       </div>
-      <button
-        type="button"
-        onClick={onEdit}
-        className="glass-strong relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-ink"
-      >
-        <SlidersHorizontal size={14} aria-hidden="true" />
-        Edit details
+      {/* The error dot sits on a wrapper, outside the button's clipped edges. Fills with the navy accent on hover. */}
+      <span className="relative">
+        <SlideButton
+          type="button"
+          onClick={onEdit}
+          fill="var(--accent)"
+          className="glass-strong rounded-full py-1.5 text-sm font-medium text-ink [--slide-pad:2rem]"
+        >
+          <SlidersHorizontal size={14} aria-hidden="true" />
+          Edit details
+        </SlideButton>
         {hasErrors && (
-          <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-alert" aria-label="Some details need a fix" />
+          <span className="absolute -right-0.5 -top-0.5 z-10 size-2.5 rounded-full bg-alert" aria-label="Some details need a fix" />
         )}
-      </button>
+      </span>
     </section>
   );
 }

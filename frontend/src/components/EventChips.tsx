@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { EventIcon } from "@/components/EventIcon";
@@ -32,8 +33,10 @@ export function EventChips({ events, onRemove }: EventChipsProps) {
                 type="button"
                 onClick={() => onRemove(event)}
                 aria-label={`Remove: ${eventLabel(event)}`}
-                className="rounded-full p-0.5 text-muted hover:bg-accent/20 hover:text-ink"
+                className="fill-btn rounded-full p-0.5 text-muted"
+                style={{ "--btn-fill": "var(--accent)", "--fill-scale": "1.6" } as CSSProperties}
               >
+                <span className="circle" aria-hidden="true" />
                 <X size={14} aria-hidden="true" />
               </button>
             )}

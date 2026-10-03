@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { EventIcon } from "@/components/EventIcon";
 import { eventDetails, eventLabel } from "@/lib/eventMeta";
+import { tipContent, tipReveal } from "@/lib/tipReveal";
 import type { LifeEvent } from "@/lib/types";
 
 interface AgePickerProps {
@@ -97,15 +98,11 @@ export function AgePicker({ startAge, endAge, age, events, onChange, pending = f
                 drawn brighter than the dimmed past. */}
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
               <div
-                className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-ink/45"
+                className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-accent/80"
                 style={{ left: at(within(startAge)), right: `calc(100% - ${at(within(endAge))})` }}
               />
               {[scaleMin, scaleMax].map((a) => (
-                <div
-                  key={a}
-                  className="absolute top-1/2 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-ink/35"
-                  style={{ left: at(a) }}
-                />
+                <div key={a} className="absolute top-1/2 h-2.5 w-px -translate-x-1/2 -translate-y-1/2 bg-ink/35" style={{ left: at(a) }} />
               ))}
             </div>
             <input
@@ -173,23 +170,23 @@ function Marker({ event, year, reached, left, align, onPick }: MarkerProps) {
         {open && (
           <motion.div
             role="tooltip"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+            {...tipReveal(align === "start" ? "above-start" : align === "end" ? "above-end" : "above")}
             className={`pointer-events-none absolute bottom-full z-30 mb-2 w-60 rounded-xl border border-line bg-surface/90 p-3 text-sm shadow-2xl backdrop-blur-md ${position}`}
           >
-            <p className="font-medium text-ink">{eventLabel(event)}</p>
-            <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-muted">
-              {year} &middot; age {event.age}
-            </p>
-            <dl className="mt-2 space-y-0.5 border-t border-line pt-2">
-              {eventDetails(event).map((detail) => (
-                <div key={detail.label} className="flex justify-between gap-3">
-                  <dt className="text-muted">{detail.label}</dt>
-                  <dd className="tabular-nums text-ink">{detail.value}</dd>
-                </div>
-              ))}
-            </dl>
+            <motion.div {...tipContent}>
+              <p className="font-medium text-ink">{eventLabel(event)}</p>
+              <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-muted">
+                {year} &middot; age {event.age}
+              </p>
+              <dl className="mt-2 space-y-0.5 border-t border-line pt-2">
+                {eventDetails(event).map((detail) => (
+                  <div key={detail.label} className="flex justify-between gap-3">
+                    <dt className="text-muted">{detail.label}</dt>
+                    <dd className="tabular-nums text-ink">{detail.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 import { Moon, Sun } from "lucide-react";
 
 // Light or dark mode, stored on <html data-theme> and remembered in localStorage. Dark is the default.
@@ -37,8 +37,10 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-label={`Switch to ${next} mode`}
       title={`Switch to ${next} mode`}
-      className="glass-strong order-2 ml-auto sm:order-3 flex size-9 shrink-0 items-center justify-center self-center rounded-full text-ink"
+      className="glass-strong fill-btn order-2 ml-auto sm:order-3 flex size-9 shrink-0 items-center justify-center self-center rounded-full text-ink"
+      style={{ "--btn-fill": "var(--accent)" } as CSSProperties}
     >
+      <span className="circle" aria-hidden="true" />
       {theme === "light" ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
     </button>
   );
