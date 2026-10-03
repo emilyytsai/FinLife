@@ -133,6 +133,7 @@ def test_chat_suggested_prompt_adds_event_and_writes_one_audit_line(client, maya
     assert record["session_id"] == "test-session"
     assert record["request"]["last_user_message"] == prompt
     assert record["number_check"] == "skipped"
+    assert record["guardrail_action"] == "NONE_LOCAL"  # tests never call the real guardrail
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z", record["ts"])
 
 
