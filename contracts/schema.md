@@ -76,7 +76,7 @@ Exactly five types. Every event may carry an optional "id" string made by the fr
 ### Event validation (checked against the request's profile)
 - profile.age <= age < profile.retire_age
 - At most 10 events per request; at most one buy_house
-- buy_house: 10000 <= price <= 5000000; 0 <= down_pct <= 1; 0 <= rate <= 0.2; 1 <= years <= 40
+- buy_house: price >= 10000; 0 <= down_pct <= 1; 0 <= rate <= 0.2; 1 <= years <= 40
 - have_child: 0 <= annual_cost <= 100000
 - job_loss: 1 <= months <= 12
 - set_retirement_pct: 0 <= pct <= 1

@@ -103,6 +103,23 @@ def test_analyze_shape(client, maya):
     assert len(body["baseline"]["years"]) == PLAN_TO_AGE - maya["age"] + 1
 
 
+def test_suggested_house_price_is_uncapped_for_high_earners(client, maya):
+    """A $1M income suggests a $6M house, and that suggestion runs through /simulate."""
+    rich = {**maya, "income": 1_000_000}
+    response = client.post("/analyze", json={"profile": rich})
+    assert response.status_code == 200
+    house = response.json()["analysis"]["suggested_scenarios"][0]["event"]
+    assert house["price"] == 6_000_000
+    assert client.post("/simulate", json={"profile": rich, "events": [house]}).status_code == 200
+
+
+def test_stub_suggested_house_price_is_uncapped(client, maya, stub_engine):
+    rich = {**maya, "income": 1_000_000}
+    response = client.post("/analyze", json={"profile": rich})
+    assert response.status_code == 200
+    assert response.json()["analysis"]["suggested_scenarios"][0]["event"]["price"] == 6_000_000
+
+
 def test_chat_suggested_prompt_adds_event_and_writes_one_audit_line(client, maya, local_dir):
     prompt = suggested_prompts(client, maya)[0]
     response = client.post("/chat", json=chat_body(maya, [], prompt))
