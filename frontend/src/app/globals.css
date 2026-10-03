@@ -37,3 +37,31 @@ body {
   background: var(--canvas);
   color: var(--ink);
 }
+
+/* Print: the advisor brief on white paper, no shadows, sections kept whole. */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #ffffff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .shadow-soft {
+    box-shadow: none;
+    border: 1px solid var(--line);
+  }
+
+  section,
+  li {
+    break-inside: avoid;
+  }
+}
+
+/* Let tall stacks of timeline pictograms draw above the plot instead of being clipped. */
+.recharts-surface {
+  overflow: visible;
+}

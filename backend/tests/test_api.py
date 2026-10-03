@@ -133,6 +133,7 @@ def test_chat_suggested_prompt_adds_event_and_writes_one_audit_line(client, maya
     assert record["session_id"] == "test-session"
     assert record["request"]["last_user_message"] == prompt
     assert record["number_check"] == "skipped"
+    assert record["guardrail_action"] == "NONE_LOCAL"  # tests never call the real guardrail
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z", record["ts"])
 
 
@@ -204,6 +205,21 @@ def test_unexpected_error_returns_500_shape(client, maya, monkeypatch):
     response = client.post("/simulate", json={"profile": maya, "events": []})
     assert response.status_code == 500
     assert response.json() == {"error": "Something went wrong"}
+
+
+def test_chat_that_crashes_still_writes_one_audit_record(client, maya, local_dir, monkeypatch):
+    from app import main
+
+    def broken(*args):
+        raise RuntimeError("could not resolve credentials from session")
+
+    monkeypatch.setattr(main, "run_coach", broken)
+    response = client.post("/chat", json=chat_body(maya, [], "How am I doing?"))
+    assert response.status_code == 500
+    assert response.json() == {"error": "Something went wrong"}
+    lines = (local_dir / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["status"] == "error"
 
 
 def test_cors_allows_frontend_and_exposes_stub_header(client):

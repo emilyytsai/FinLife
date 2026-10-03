@@ -14,7 +14,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import stubs
 from app.brief import build_brief
-from app.coach import run_coach
+from app.coach import CoachBusy, run_coach
 from app.config import BACKEND_DIR, get_settings
 from app.guardrail import check_output
 from app.models import (
@@ -43,6 +43,7 @@ logger.setLevel(logging.INFO)
 
 MAX_MODEL_MESSAGES = 20
 SERVER_ERROR = {"error": "Something went wrong"}
+COACH_BUSY = {"error": "The coach is busy. Try again in a few seconds."}
 
 app = FastAPI(title="FinLife API")
 
@@ -95,6 +96,11 @@ async def validation_error(request: Request, exc: RequestValidationError | Valid
 @app.exception_handler(BriefNotFound)
 async def brief_not_found(request: Request, exc: BriefNotFound) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": "Brief not found"})
+
+
+@app.exception_handler(CoachBusy)
+async def coach_busy(request: Request, exc: CoachBusy) -> JSONResponse:
+    return JSONResponse(status_code=503, content=COACH_BUSY)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -168,7 +174,27 @@ def chat(body: ChatRequest):
     profile, events = plain(body)
     messages = [message.model_dump() for message in body.messages][-MAX_MODEL_MESSAGES:]
     analysis = stubs.analyze_or_stub(profile)
-    result = run_coach(profile, events, messages, analysis)
+
+    def audit(**outcome) -> None:
+        """Exactly one audit record per /chat call, including calls that end in a 503."""
+        request = {"profile": profile, "events": events, "last_user_message": messages[-1]["content"]}
+        latency_ms = round((time.perf_counter() - started) * 1000)
+        write_audit(
+            {"session_id": body.session_id, "ts": now_iso_ms(), "request": request, **outcome, "latency_ms": latency_ms}
+        )
+
+    try:
+        result = run_coach(profile, events, messages, analysis)
+    except Exception as error:  # CoachBusy becomes a 503 and anything else a 500; both are audited first
+        audit(
+            tool_calls=getattr(error, "tool_calls", []),
+            reply="",
+            status="error",
+            model_id=getattr(error, "model_id", ""),
+            guardrail_action="NONE",
+            number_check="skipped",
+        )
+        raise
     reply, guardrail_action = check_output(result.reply)
     status = "blocked" if guardrail_action == "GUARDRAIL_INTERVENED" else result.status
     response = {
@@ -178,19 +204,13 @@ def chat(body: ChatRequest):
         "suggestions": suggestions_for(analysis, result.events),
         "status": status,
     }
-    write_audit(
-        {
-            "session_id": body.session_id,
-            "ts": now_iso_ms(),
-            "request": {"profile": profile, "events": events, "last_user_message": messages[-1]["content"]},
-            "tool_calls": result.tool_calls,
-            "reply": reply,
-            "status": status,
-            "model_id": result.model_id,
-            "guardrail_action": guardrail_action,
-            "number_check": result.number_check,
-            "latency_ms": round((time.perf_counter() - started) * 1000),
-        }
+    audit(
+        tool_calls=result.tool_calls,
+        reply=reply,
+        status=status,
+        model_id=result.model_id,
+        guardrail_action=guardrail_action,
+        number_check=result.number_check,
     )
     return response
 
