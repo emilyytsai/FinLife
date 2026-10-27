@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Cloud } from "@/lib/pointcloud/models";
 import { onFrame } from "@/lib/pointcloud/ticker";
-import { useRevealOpen } from "@/components/cloud/RevealGate";
+import { useRevealOpen, useRevealPace } from "@/components/cloud/RevealGate";
 
 export type CloudMotion = "spin" | "sway";
 
@@ -31,7 +31,6 @@ interface PointCloudProps {
 }
 
 const CAMERA_DISTANCE = 4;
-const REVEAL_SECONDS = 1.3;
 /** Sway half-range in radians, and how far models bob up and down (model units). */
 const SWAY = 0.5;
 const BOB = 0.03;
@@ -61,6 +60,7 @@ export function PointCloud({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Closed while the landing screen covers the page: draw nothing yet, so the scan-in happens in view.
   const open = useRevealOpen();
+  const revealSeconds = useRevealPace();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -120,7 +120,7 @@ export function PointCloud({
     function draw(t: number) {
       if (!ctx || !visible || width === 0) return;
       if (revealStart === null) revealStart = t;
-      const shown = reduceMotion ? 1 : Math.min(1, (t - revealStart) / REVEAL_SECONDS);
+      const shown = reduceMotion ? 1 : Math.min(1, (t - revealStart) / revealSeconds);
       const front = minY + shown * spanY;
 
       const yaw = reduceMotion ? angle : motion === "spin" ? angle + t * speed + phase : angle + Math.sin(t * 0.45 + phase) * sway;
@@ -184,7 +184,7 @@ export function PointCloud({
       intersect.disconnect();
       themeWatch.disconnect();
     };
-  }, [cloud, motion, angle, speed, tilt, phase, dotSize, reveal, sway, accentCount, open]);
+  }, [cloud, motion, angle, speed, tilt, phase, dotSize, reveal, sway, accentCount, open, revealSeconds]);
 
   return <canvas ref={canvasRef} aria-hidden="true" className={`block drop-shadow-[0_0_3px_var(--dot-glow)] ${className ?? ""}`} />;
 }

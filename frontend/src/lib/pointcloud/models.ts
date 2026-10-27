@@ -300,6 +300,57 @@ function cardBase(b: Builder) {
   b.line([-0.78, -0.42, 0.02], [-0.2, -0.42, 0.02], 0.035, 0.6);
 }
 
+/** A mid-rise condo building: floors scanned in rows, window openings, a balcony with railings on each floor. */
+export function condoCloud(floors = 6): Cloud {
+  const b = new Builder(seeded(83));
+  // Height grows with the floor count, so a 3-floor building is a smaller apartment, not a squashed condo.
+  const [x0, x1, y0, y1, z0, z1] = [-0.55, 0.55, -1, -1 + floors / 3, -0.4, 0.4];
+  const floorH = (y1 - y0) / floors;
+  const cols = [-0.35, 0, 0.35];
+  const winW = 0.16;
+  const winH = floorH * 0.45;
+  const inWindow = (x: number, y: number) => {
+    const f = Math.floor((y - y0) / floorH);
+    const fy = y0 + f * floorH + floorH * 0.3;
+    return f > 0 && y > fy && y < fy + winH && cols.some((c) => Math.abs(x - c) < winW / 2);
+  };
+
+  for (let y = y0; y <= y1 + 1e-6; y += 0.055) {
+    for (let x = x0; x <= x1 + 1e-6; x += 0.045) {
+      if (!inWindow(x, y)) b.add(x, y, z1, 0.5);
+      b.add(x, y, z0, 0.3);
+    }
+    for (let z = z0; z <= z1 + 1e-6; z += 0.045) {
+      b.add(x0, y, z, 0.4);
+      b.add(x1, y, z, 0.4);
+    }
+  }
+  b.boxEdges([x0, y0, z0], [x1, y1, z1], 0.025, 1);
+  // Roof parapet and a small rooftop box.
+  b.boxEdges([x0 - 0.03, y1, z0 - 0.03], [x1 + 0.03, y1 + 0.06, z1 + 0.03], 0.03, 0.9);
+  b.boxEdges([-0.15, y1 + 0.06, -0.15], [0.15, y1 + 0.2, 0.1], 0.03, 0.8);
+
+  for (let f = 0; f < floors; f++) {
+    const base = y0 + f * floorH;
+    // Floor line around the facade.
+    b.polyline([[x0, base, z1], [x1, base, z1], [x1, base, z0], [x0, base, z0]], 0.03, 0.7, true);
+    if (f === 0) {
+      b.polyline([[-0.12, y0, z1], [-0.12, y0 + floorH * 0.75, z1], [0.12, y0 + floorH * 0.75, z1], [0.12, y0, z1]], 0.022, 1);
+      continue;
+    }
+    for (const c of cols) {
+      const wy = base + floorH * 0.3;
+      b.polyline([[c - winW / 2, wy, z1], [c + winW / 2, wy, z1], [c + winW / 2, wy + winH, z1], [c - winW / 2, wy + winH, z1]], 0.022, 1, true);
+    }
+    // Balcony: a slab sticking out from the facade, with a railing.
+    const slab = base + 0.02;
+    b.polyline([[-0.5, slab, z1], [-0.5, slab, z1 + 0.16], [0.5, slab, z1 + 0.16], [0.5, slab, z1]], 0.03, 0.9);
+    b.line([-0.5, slab + 0.12, z1 + 0.16], [0.5, slab + 0.12, z1 + 0.16], 0.03, 0.8);
+    for (let x = -0.5; x <= 0.5 + 1e-6; x += 0.125) b.line([x, slab, z1 + 0.16], [x, slab + 0.12, z1 + 0.16], 0.03, 0.6);
+  }
+  return normalize(b.build());
+}
+
 /** Debit card: the card outline, chip, and number groups. */
 export function debitCardCloud(): Cloud {
   const b = new Builder(seeded(51));

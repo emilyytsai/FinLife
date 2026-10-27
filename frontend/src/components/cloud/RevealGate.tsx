@@ -9,3 +9,8 @@ import { createContext, useContext } from "react";
 export const RevealGate = createContext(true);
 
 export const useRevealOpen = () => useContext(RevealGate);
+
+/** How long the bottom-up scan takes, in seconds. The scene slows it down for things a what-if brings in. */
+export const RevealPace = createContext(1.3);
+
+export const useRevealPace = () => useContext(RevealPace);

@@ -123,13 +123,18 @@ export function AskBar({ pending, disabled, suggestions, events, noChange, onSen
         </div>
       )}
 
+      {/* Dividers only separate a section from something above it. */}
       {events.length > 0 && (
-        <div className="border-t border-line pt-3">
+        <div className={suggestions.length > 0 || (noChange && !pending) ? "border-t border-line pt-3" : ""}>
           <EventChips events={events} onRemove={busy ? undefined : onRemoveEvent} />
         </div>
       )}
 
-      {footer && <div className="border-t border-line pt-3">{footer}</div>}
+      {footer && (
+        <div className={suggestions.length > 0 || events.length > 0 || (noChange && !pending) ? "border-t border-line pt-3" : ""}>
+          {footer}
+        </div>
+      )}
     </section>
   );
 }

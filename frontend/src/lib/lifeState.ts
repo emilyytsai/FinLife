@@ -29,7 +29,7 @@ export interface LifeGroup {
   figures: LifeFigure[];
 }
 
-const isCar = (name: string) => /\bcar\b/i.test(name);
+const isCar = (name: string) => /\b(car|suv|truck|van)\b/i.test(name);
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
