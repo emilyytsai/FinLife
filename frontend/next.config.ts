@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Static export for Amplify Hosting: no server features, no API routes, no middleware.
+// Static export: the whole app, engine included, runs in the browser. No server features, API routes, or middleware.
 const nextConfig: NextConfig = {
   output: "export",
   images: { unoptimized: true },

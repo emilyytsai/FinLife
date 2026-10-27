@@ -11,7 +11,7 @@ import type { Brief } from "@/lib/types";
 type BriefState = { status: "loading" } | { status: "ok"; brief: Brief } | { status: "error"; message: string };
 
 function errorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.status === 404) return "This brief wasn't found. Links expire after 30 days.";
+  if (error instanceof ApiError && error.status === 404) return "This brief link looks incomplete. Ask the client to copy it again.";
   if (error instanceof ApiError) return error.message;
   return "Couldn't load the brief. Try again.";
 }
